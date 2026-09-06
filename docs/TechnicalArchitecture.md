@@ -1,15 +1,11 @@
-# CMS as AI
-## Technical Architecture
+# CMS as AI — Technical Architecture
 
-**Version:** 0.9
+**Version:** 1.0  
+**Architecture Principle:** PaaS-first, Docker-portable
 
----
-
-# 1. Architecture Goal
+## 1. Architecture Goal
 
 CMS as AIは単一LLMアプリケーションではない。
-
-全体を、
 
 ```text
 Sensors
@@ -33,11 +29,9 @@ Actions
 Evaluation
 ```
 
-として構成する。
+LLMはReasoning Componentであり、Truth / Policy / State / PermissionsはLLMの外側に置く。
 
----
-
-# 2. Core Architecture
+## 2. Core Architecture
 
 ```text
                     Business Goals
@@ -65,11 +59,7 @@ Evaluation
                               Actions
 ```
 
----
-
-# 3. System Components
-
-主要コンポーネント：
+## 3. Main Components
 
 ```text
 Connector Layer
@@ -86,6 +76,7 @@ Verification Engine
 Content Grounding Engine
 Technical SEO Engine
 Planner
+Feasibility Engine
 Policy Engine
 Tool Runtime
 Review System
@@ -93,13 +84,9 @@ Evaluation System
 Memory
 ```
 
----
+## 4. Connector Layer
 
-# 4. Connector Layer
-
-外部システムとの接続を担当する。
-
-Phase 1：
+Phase 1:
 
 ```text
 WordPress Connector
@@ -108,20 +95,22 @@ GA4 Connector
 Slack Connector
 ```
 
-Later：
+Later:
 
 ```text
 Notion
 Obsidian
 CRM
-YouTube
+Support
 Google Trends
-SNS
+YouTube
+TikTok
+Instagram
 ```
 
----
+ConnectorsはPlugin的に追加可能にし、Coreと分離する。
 
-# 5. Ingestion Architecture
+## 5. Ingestion Pipeline
 
 ```text
 External Source
@@ -135,37 +124,25 @@ Normalizer
 Evidence Extraction
 ↓
 Candidate Knowledge
+↓
+Validation
 ```
 
-Raw Dataと加工済みデータを分離する。
+Raw Dataと加工済みKnowledgeを分離する。
 
----
+## 6. Trust Boundary
 
-# 6. Trust Boundary
-
-外部Sourceはすべて、
-
-```text
-UNTRUSTED
-```
-
-として扱う。
-
-特に、
+以下はすべてUNTRUSTED INPUTとして扱う。
 
 ```text
 Slack
-External Web
 SNS
+External Web
 Comments
 User-generated content
 ```
 
-はPrompt Injectionの可能性を持つ。
-
----
-
-# 7. Agent Isolation
+## 7. Agent Isolation
 
 ```text
 Untrusted Input
@@ -188,13 +165,11 @@ Policy Engine
 Tools
 ```
 
-Action AgentにはRaw External Inputを直接渡さない。
+**Action AgentはRaw External Evidenceを直接読まない。**
 
----
+## 8. Extraction Agent
 
-# 8. Extraction Agent
-
-責務：
+責務:
 
 - Entity Candidate抽出
 - Fact Candidate抽出
@@ -204,21 +179,17 @@ Action AgentにはRaw External Inputを直接渡さない。
 - Observation抽出
 - Experience抽出
 
-Tool権限：
+Tool権限:
 
 ```text
 NONE
 ```
 
-構造化出力を必須とする。
+Structured Outputを必須とする。
 
----
+## 9. Entity Resolution Service
 
-# 9. Entity Resolution Service
-
-Entity CandidateをCanonical Entityへ解決する。
-
-判定要素：
+判定要素:
 
 ```text
 Name similarity
@@ -231,79 +202,47 @@ Embedding similarity
 Structured attributes
 ```
 
-曖昧な場合はReview Taskを生成する。
+曖昧な場合はHuman Review。
 
----
-
-# 10. Hybrid Knowledge Layer
-
-Knowledgeは、
+## 10. Hybrid Knowledge Layer
 
 ```text
 Structured
-+
-Unstructured
+├── Entity
+├── Fact
+└── Relationship
+
+Semi-structured / Unstructured
+├── Evidence
+├── Observation
+├── Experience
+├── Question
+├── Problem
+├── Claim
+└── Embedding
 ```
 
-で保持する。
+Graph DBはPhase 1必須にしない。
 
-Structured：
+## 11. Provenance & Temporal Knowledge
 
-```text
-Entity
-Fact
-Relationship
-```
+Knowledge ↔ Evidenceを多対多で保持する。
 
-Unstructured：
-
-```text
-Evidence
-Observation
-Experience
-Question
-Problem
-Claim
-Embedding
-```
-
----
-
-# 11. Provenance Architecture
-
-KnowledgeとEvidenceを多対多で接続する。
-
-```text
-Knowledge
-↕
-Evidence Links
-↕
-Evidence
-```
-
-Factの更新時も旧Evidenceは保持する。
-
----
-
-# 12. Temporal Knowledge
-
-Factは時間性を持つ。
+Factには:
 
 ```text
 valid_from
 valid_until
 last_verified_at
+confidence
+risk_level
 ```
 
-現在値だけを上書きしない。
+を持たせる。
 
-履歴はKnowledge Versionとして保存する。
+Knowledge更新時はVersionを作成する。
 
----
-
-# 13. World Model
-
-World Modelは以下から構成する。
+## 12. World Model
 
 ```text
 Business World
@@ -315,15 +254,9 @@ Technical World
 Performance World
 ```
 
-専用Graph DBはPhase 1必須ではない。
+PostgreSQLを主データストアとする。
 
-PostgreSQLを主データストアとしてよい。
-
----
-
-# 14. Search World
-
-Search Intelligenceは、
+## 13. Search World
 
 ```text
 Queries
@@ -334,27 +267,20 @@ SERP Snapshots
 Competitors
 Content Gaps
 Search Demand
+Visibility
 ```
 
-を保持する。
-
-Search WorldはOpportunity判定に利用する。
-
----
-
-# 15. Content Graph
-
-Knowledge Graphとは分離する。
+## 14. Content Graph
 
 ```text
 Knowledge Graph
-= 世界の意味
+= 意味・世界認識
 
 Content Graph
 = Web上の配置
 ```
 
-Content Graph：
+Content Graph:
 
 ```text
 Pages
@@ -366,19 +292,11 @@ Canonical Relations
 Redirect Relations
 ```
 
----
+## 15. Opportunity Engine
 
-# 16. Opportunity Engine
+特徴量からScoreをコード計算する。
 
-特徴量を生成し、
-
-```text
-Opportunity Score
-```
-
-をコードで算出する。
-
-例：
+例:
 
 ```text
 Demand
@@ -394,13 +312,9 @@ Content Cost
 Quality Risk
 ```
 
-LLMは説明を担当するがScore決定はしない。
+LLMは説明・特徴抽出を担当するがScore決定はしない。
 
----
-
-# 17. Suppression Engine
-
-Opportunityに対する抑制要因を計算する。
+## 16. Suppression Engine
 
 ```text
 Low Information Gain
@@ -412,15 +326,11 @@ Policy Risk
 Duplicate Intent
 ```
 
-Opportunity Scoreが高くてもSuppressionが閾値超過なら実行しない。
+Opportunityが高くてもSuppressionが高ければ実行しない。
 
----
+## 17. Pruning Engine
 
-# 18. Pruning Engine
-
-既存Contentを監視する。
-
-入力：
+入力:
 
 ```text
 Traffic
@@ -432,7 +342,7 @@ Query Overlap
 Index Status
 ```
 
-出力：
+出力:
 
 ```text
 KEEP
@@ -443,29 +353,25 @@ REDIRECT
 DELETE CANDIDATE
 ```
 
----
-
-# 19. Verification Engine
-
-Fact StalenessやConflictを検出する。
+## 18. Verification Engine
 
 ```text
 Fact
 ↓
-Risk Evaluation
+Staleness / Conflict Evaluation
 ↓
 Verification Request
 ↓
-Human / External Verification
+Human Verification
 ↓
 Evidence
 ↓
 Fact Update
+↓
+Affected Content Detection
 ```
 
----
-
-# 20. Content Grounding Engine
+## 19. Content Grounding Engine
 
 ```text
 Knowledge
@@ -479,35 +385,25 @@ Knowledge / Evidence Match
 Unsupported Claim Detection
 ```
 
-Content Claim単位で根拠を保持する。
+Content Claim単位でGrounding状態を保持する。
 
----
-
-# 21. Passage Layer
-
-ProjectionはPage単位だけでなく、
-
-```text
-Answer Block / Passage
-```
-
-を持つ。
+## 20. Passage Layer
 
 ```text
 Question
 ↓
 Knowledge
 ↓
-Answer Block
+Answer Block / Passage
 ↓
 Article / FAQ / Chatbot / SNS
 ```
 
----
+Pageより小さいProjection単位を持つ。
 
-# 22. Technical SEO Engine
+## 21. Technical SEO Engine
 
-状態として以下を管理する。
+Stateとして以下を管理する。
 
 ```text
 URL
@@ -522,11 +418,9 @@ Core Web Vitals
 Internal Link Graph
 ```
 
----
+## 22. WordPress Adapter
 
-# 23. WordPress Adapter
-
-Phase 1では、
+Phase 1:
 
 ```text
 WordPress
@@ -534,59 +428,49 @@ WordPress
 CMS as AI
 ```
 
-が基本。
+Field Ownershipを明示する。
 
-WordPress Field Ownershipを明示する。
-
-例：
+例:
 
 ```text
-Title → WordPress
 Body → WordPress
 Canonical → SEO Plugin
 Schema → CMS as AI
 ```
 
-など。
+複数システムで同一Fieldを書かない。
 
-複数システムが同じFieldを書かない。
+## 23. Avoid Bidirectional Sync
 
----
-
-# 24. Avoid Bidirectional Sync
-
-Phase 2でも無制限な双方向同期は避ける。
-
-設計原則：
+設計原則:
 
 ```text
 One domain
 One canonical owner
 ```
 
----
+Phase 1はWP→AI。  
+将来AIがCanonicalになった場合はAI→WP。
 
-# 25. Planner
+無制限な双方向同期は避ける。
 
-PlannerはHuman Strategyを短期Actionへ分解する。
+## 24. Planner
 
 ```text
-Strategy
+Human Strategy
 ↓
 Opportunity
 ↓
 Plan
 ↓
 Tasks
+↓
+Actions
 ```
 
-LLMの長期戦略判断には依存しない。
+長期Strategyは人間が握り、AIは短期Planningを担当。
 
----
-
-# 26. Feasibility Engine
-
-Goalに対して、
+## 25. Feasibility Engine
 
 ```text
 Search Demand
@@ -596,15 +480,11 @@ Expected Conversion
 Time Horizon
 ```
 
-等から達成可能性を推定する。
+等からGoal達成可能性を評価する。
 
-達成困難なGoalには修正案を返す。
+## 26. Policy Engine
 
----
-
-# 27. Policy Engine
-
-LLMの外側で実装する。
+LLMの外側で実装。
 
 ```text
 Action
@@ -618,7 +498,7 @@ Aggregate Policy
 Risk Decision
 ```
 
-結果：
+Result:
 
 ```text
 ALLOW
@@ -627,11 +507,7 @@ DENY
 FREEZE
 ```
 
----
-
-# 28. Tool Runtime
-
-LLMからDBや外部サービスを直接触らせない。
+## 27. Tool Runtime
 
 ```text
 LLM
@@ -645,9 +521,9 @@ Transaction
 Audit Log
 ```
 
----
+DBや外部サービスをLLMから直接触らせない。
 
-# 29. Tool Categories
+## 28. Tool Categories
 
 ```text
 content.*
@@ -664,37 +540,7 @@ deploy.*
 verification.*
 ```
 
----
-
-# 30. Example Tools
-
-```text
-content.edit
-content.merge
-content.archive
-
-link.create
-link.remove
-
-redirect.create
-
-canonical.set
-
-index.noindex
-
-schema.update
-
-wordpress.preview
-wordpress.publish
-
-verification.request
-```
-
----
-
-# 31. Review System
-
-Medium / High Risk Actionは、
+## 29. Review System
 
 ```text
 Proposal
@@ -708,88 +554,53 @@ Reason
 Human Review
 ```
 
-を表示する。
+Review結果はOperational Memoryへ保存する。
 
-Review結果はMemoryへ保存する。
+## 30. Earned Autonomy
 
----
-
-# 32. Earned Autonomy
-
-CapabilityごとにAutonomy Levelを持つ。
+Site × Capabilityで管理。
 
 ```text
-site_id
-capability
-autonomy_level
-```
-
-例：
-
-```text
+Fact Verification → Level 4
 Schema → Level 4
-Internal Linking → Level 2
-Content Edit → Level 1
-Deletion → Level 0
+Internal Link → Level 2
+Content Update → Level 1
+Delete → Level 0
 ```
 
----
-
-# 33. Aggregate Policy Engine
-
-単体Actionに加え、
+## 31. Aggregate Policy
 
 ```text
 Site-wide Change Rate
 Batch Size
 Daily Action Count
 Publishing Rate
+Redirect Count
+Link Change Count
 ```
 
 を評価する。
 
----
+## 32. Emergency Stop & Campaign Rollback
 
-# 34. Emergency Stop
-
-以下でAutomationをFreezeする。
+Trigger:
 
 ```text
 Traffic anomaly
 Index anomaly
 Mass 404
 Manual action
-Large redirect spike
+Redirect spike
 Large rollback rate
 ```
 
-Freeze状態ではAction Toolを拒否する。
+Freeze時はAction Toolを拒否。
 
----
+複数ActionをCampaignとして束ね、Campaign単位Rollbackを可能にする。
 
-# 35. Campaign Model
+## 33. Memory
 
-複数Actionを、
-
-```text
-Campaign
-```
-
-としてまとめる。
-
-これにより、
-
-```text
-Campaign Rollback
-```
-
-を実現する。
-
----
-
-# 36. Memory
-
-Phase 1で重視するのはOperational Memory。
+Phase 1ではOperational Memory中心。
 
 ```text
 Proposal
@@ -801,15 +612,11 @@ Reason
 Approver
 ```
 
-Strategic Memoryは補助的に扱う。
+Strategic Memoryは補助的に扱い、Evidence / Confidence / Decayを持たせる。
 
----
+## 34. Evaluation Architecture
 
-# 37. Evaluation Architecture
-
-Eval Datasetを別途保持する。
-
-対象：
+Eval対象:
 
 ```text
 Extraction
@@ -820,11 +627,9 @@ Opportunity Ranking
 Suppression
 ```
 
-モデル変更時はRegression Evalを実行する。
+Model更新時はRegression Evalを実行する。
 
----
-
-# 38. Background Processing
+## 35. Background Processing
 
 リアルタイム処理に寄せすぎない。
 
@@ -834,9 +639,7 @@ Batch Jobs
 Event Jobs
 ```
 
-を使い分ける。
-
-例：
+例:
 
 ```text
 Nightly Knowledge Refresh
@@ -845,11 +648,7 @@ Weekly Content Decay Analysis
 Hourly Verification Response Processing
 ```
 
----
-
-# 39. Model Routing
-
-モデルは用途別に使い分ける。
+## 36. Model Routing
 
 ```text
 Small Model
@@ -862,54 +661,195 @@ Strong Model
 → planning / complex reasoning / drafting
 ```
 
----
+## 37. Search / Vector Strategy
 
-# 40. Vector Search
-
-Embeddingは、
+Embedding用途:
 
 - Evidence Search
 - Similar Content Detection
 - Entity Candidate Matching
 - Question Clustering
 
-に使う。
+Truth判定をEmbeddingだけに依存しない。
 
-KnowledgeのTruth判定をEmbeddingだけに依存しない。
+pgvectorはOptionalにする。
 
----
+## 38. Deployment Principle
 
-# 41. Recommended Phase 1 Stack
+> **PaaS-first, Docker-portable.**
 
-一例：
+Core must run with:
+
+```text
+1 application image
+1 PostgreSQL database
+1 LLM API
+```
+
+Workers / Schedulersは同じApplication Imageを使う。
+
+## 39. PaaS Target
+
+グローバルで一般的なPaaSを想定する。
+
+Primary:
+
+```text
+Render
+Railway
+Heroku
+Fly.io
+```
+
+Fallback:
+
+```text
+Generic Docker
+```
+
+## 40. Minimal PaaS Shape
+
+```text
+GitHub
+  ↓
+PaaS
+├── Web
+├── Worker
+└── Scheduler
+      ↓
+Managed PostgreSQL
+
++
+External APIs
+├── LLM
+├── WordPress
+├── GSC
+├── GA4
+└── Slack
+```
+
+## 41. Stateful Components
+
+**PostgreSQLを唯一の必須Stateful Componentにする。**
+
+初期から必須にしない:
+
+```text
+Redis
+Elasticsearch
+Neo4j
+Kafka
+Dedicated Vector DB
+Persistent Disk
+Kubernetes
+```
+
+## 42. Job Queue
+
+Redisを必須にしない。
+
+Railsなら:
+
+```text
+Solid Queue
+```
+
+等、PostgreSQLだけで完結する方式を優先する。
+
+## 43. Filesystem
+
+PaaSのLocal Filesystemを永続ストレージとして信用しない。
+
+Phase 1:
+
+```text
+Database → PaaS PostgreSQL
+Media → Existing WordPress Media Library
+```
+
+Later:
+
+```text
+Object Storage
+```
+
+をOptional追加。
+
+## 44. One Image, Multiple Processes
+
+同一Docker Imageを使う。
+
+```text
+Web:
+  command: web
+
+Worker:
+  command: worker
+
+Scheduler:
+  command: scheduler
+```
+
+PaaS固有コードをApplicationへ埋め込まない。
+
+## 45. Environment Configuration
+
+Deploy直後は最低限:
+
+```text
+DATABASE_URL
+LLM_API_KEY
+APP_SECRET
+```
+
+程度で起動できることを目標とする。
+
+WordPress / GSC / GA4 / SlackはUIから接続可能にする。
+
+## 46. Setup UX
+
+```text
+Deploy to PaaS
+↓
+Open App
+↓
+Create Admin
+↓
+Enter Site URL
+↓
+Connect WordPress
+↓
+Select LLM Provider
+↓
+Start Scan
+```
+
+ユーザーに初期からOntology / Entity Schema / Agent設定を要求しない。
+
+## 47. Recommended Phase 1 Stack
+
+一例:
 
 ```text
 Rails
 PostgreSQL
-pgvector
-Sidekiq / Solid Queue
+Solid Queue
+optional pgvector
 LLM APIs
 WordPress REST API
 Google Search Console API
 GA4 API
 Slack API
+Docker
 ```
 
----
+## 48. Application Shape
 
-# 42. Phase 1 Deployment Shape
+初期はMicroservices化しない。
 
-初期はMicroservices化を避ける。
+> **Modular Monolith**
 
-```text
-Modular Monolith
-```
-
-で十分。
-
-Bounded Contextだけ明確にする。
-
-例：
+Bounded Context:
 
 ```text
 Ingestion
@@ -921,11 +861,9 @@ Policy
 Evaluation
 ```
 
----
+## 49. Observability
 
-# 43. Observability
-
-最低限、
+最低限:
 
 ```text
 Job status
@@ -935,15 +873,10 @@ Policy denials
 Action errors
 Extraction failures
 Rollback events
+Connector health
 ```
 
-を監視する。
-
----
-
-# 44. Security
-
-必須：
+## 50. Security
 
 ```text
 Tenant isolation
@@ -955,10 +888,10 @@ Rate limits
 Prompt injection isolation
 ```
 
----
+## 51. Final Architecture Principle
 
-# 45. Final Architecture Principle
+> **Brainは高度でも、Deploymentは普通のWebアプリであるべき。**
+
+そして、
 
 > **LLMは賢さを提供するが、権限・真実・状態・ルールはLLMの外側に置く。**
-
-この原則を崩さない。

@@ -1,14 +1,9 @@
-# CMS as AI
-## Data Model & Database Schema
+# CMS as AI — Data Model & Database Schema
 
-**Version:** 0.9  
+**Version:** 1.0  
 **Target:** Phase 1 + future extensibility
 
----
-
-# 1. Modeling Principles
-
-基本原則：
+## 1. Modeling Principles
 
 ```text
 Evidence is immutable where possible
@@ -18,11 +13,10 @@ Content is separate from Knowledge
 Actions are auditable
 Scores are reproducible
 LLM output is not truth
+PostgreSQL is the primary state store
 ```
 
----
-
-# 2. Core Domains
+## 2. Core Domains
 
 ```text
 Sites
@@ -40,11 +34,7 @@ Memory
 Evaluation
 ```
 
----
-
-# 3. sites
-
-サイト単位のRoot Entity。
+## 3. sites
 
 ```text
 sites
@@ -58,11 +48,7 @@ sites
 - updated_at
 ```
 
----
-
-# 4. sources
-
-データ取得元。
+## 4. sources
 
 ```text
 sources
@@ -78,7 +64,7 @@ sources
 - updated_at
 ```
 
-`source_type`例：
+Examples:
 
 ```text
 wordpress
@@ -90,11 +76,7 @@ web
 youtube
 ```
 
----
-
-# 5. source_items
-
-取得したRaw Item。
+## 5. source_items
 
 ```text
 source_items
@@ -110,13 +92,7 @@ source_items
 - created_at
 ```
 
-同一データの重複取得をchecksumで抑止する。
-
----
-
-# 6. evidence
-
-Knowledgeの根拠となる単位。
+## 6. evidence
 
 ```text
 evidence
@@ -128,14 +104,11 @@ evidence
 - metadata
 - observed_at
 - trust_level
+- embedding          # optional pgvector
 - created_at
 ```
 
----
-
-# 7. signals
-
-Fact未満の外部・内部兆候。
+## 7. signals
 
 ```text
 signals
@@ -151,11 +124,7 @@ signals
 - created_at
 ```
 
----
-
-# 8. entities
-
-Canonical Entity。
+## 8. entities
 
 ```text
 entities
@@ -166,16 +135,13 @@ entities
 - slug
 - description
 - external_ids
+- embedding          # optional
 - status
 - created_at
 - updated_at
 ```
 
----
-
-# 9. entity_aliases
-
-Entity別名。
+## 9. entity_aliases
 
 ```text
 entity_aliases
@@ -188,11 +154,7 @@ entity_aliases
 - created_at
 ```
 
----
-
-# 10. entity_candidates
-
-自動抽出された未確定Entity。
+## 10. entity_candidates
 
 ```text
 entity_candidates
@@ -207,11 +169,7 @@ entity_candidates
 - created_at
 ```
 
----
-
-# 11. entity_merges
-
-Entity統合履歴。
+## 11. entity_merges
 
 ```text
 entity_merges
@@ -223,11 +181,7 @@ entity_merges
 - created_at
 ```
 
----
-
-# 12. facts
-
-検証可能な構造化情報。
+## 12. facts
 
 ```text
 facts
@@ -247,11 +201,7 @@ facts
 - updated_at
 ```
 
----
-
-# 13. claims
-
-未確定または主観を含む主張。
+## 13. claims
 
 ```text
 claims
@@ -265,11 +215,7 @@ claims
 - updated_at
 ```
 
----
-
-# 14. relationships
-
-Entity間の関係。
+## 14. relationships
 
 ```text
 relationships
@@ -285,11 +231,7 @@ relationships
 - created_at
 ```
 
----
-
-# 15. observations
-
-観測された現象。
+## 15. observations
 
 ```text
 observations
@@ -303,11 +245,7 @@ observations
 - created_at
 ```
 
----
-
-# 16. questions
-
-ユーザーや社内で発生した質問。
+## 16. questions
 
 ```text
 questions
@@ -320,14 +258,11 @@ questions
 - frequency
 - first_seen_at
 - last_seen_at
+- embedding          # optional
 - created_at
 ```
 
----
-
-# 17. problems
-
-Audience Problem。
+## 17. problems
 
 ```text
 problems
@@ -341,11 +276,7 @@ problems
 - created_at
 ```
 
----
-
-# 18. experiences
-
-実体験・現場確認。
+## 18. experiences
 
 ```text
 experiences
@@ -360,11 +291,7 @@ experiences
 - created_at
 ```
 
----
-
-# 19. evidence_links
-
-KnowledgeとEvidenceの多対多。
+## 19. evidence_links
 
 ```text
 evidence_links
@@ -376,7 +303,7 @@ evidence_links
 - created_at
 ```
 
-`knowledge_type`：
+knowledge_type examples:
 
 ```text
 Fact
@@ -386,11 +313,7 @@ Relationship
 Experience
 ```
 
----
-
-# 20. knowledge_versions
-
-Knowledge変更履歴。
+## 20. knowledge_versions
 
 ```text
 knowledge_versions
@@ -405,11 +328,7 @@ knowledge_versions
 - created_at
 ```
 
----
-
-# 21. fact_staleness
-
-Fact鮮度状態。
+## 21. fact_staleness
 
 ```text
 fact_staleness
@@ -422,11 +341,7 @@ fact_staleness
 - evaluated_at
 ```
 
----
-
-# 22. verification_requests
-
-確認依頼。
+## 22. verification_requests
 
 ```text
 verification_requests
@@ -444,11 +359,7 @@ verification_requests
 - completed_at
 ```
 
----
-
-# 23. verification_events
-
-確認結果。
+## 23. verification_events
 
 ```text
 verification_events
@@ -463,11 +374,7 @@ verification_events
 - created_at
 ```
 
----
-
-# 24. original_assets
-
-一次資料。
+## 24. original_assets
 
 ```text
 original_assets
@@ -482,11 +389,7 @@ original_assets
 - created_at
 ```
 
----
-
-# 25. authors
-
-著者・監修者。
+## 25. authors
 
 ```text
 authors
@@ -499,9 +402,7 @@ authors
 - created_at
 ```
 
----
-
-# 26. author_expertise
+## 26. author_expertise
 
 ```text
 author_expertise
@@ -513,11 +414,7 @@ author_expertise
 - created_at
 ```
 
----
-
-# 27. content_items
-
-Page / Article / FAQ等。
+## 27. content_items
 
 ```text
 content_items
@@ -532,11 +429,10 @@ content_items
 - status
 - published_at
 - updated_at
+- embedding          # optional
 ```
 
----
-
-# 28. content_versions
+## 28. content_versions
 
 ```text
 content_versions
@@ -550,11 +446,7 @@ content_versions
 - created_at
 ```
 
----
-
-# 29. content_claims
-
-Content内ClaimとKnowledgeを接続する。
+## 29. content_claims
 
 ```text
 content_claims
@@ -571,11 +463,7 @@ content_claims
 - created_at
 ```
 
----
-
-# 30. passages
-
-自己完結型Answer Block。
+## 30. passages
 
 ```text
 passages
@@ -585,13 +473,12 @@ passages
 - content
 - language
 - status
+- embedding          # optional
 - created_at
 - updated_at
 ```
 
----
-
-# 31. passage_knowledge_links
+## 31. passage_knowledge_links
 
 ```text
 passage_knowledge_links
@@ -602,11 +489,7 @@ passage_knowledge_links
 - created_at
 ```
 
----
-
-# 32. language_projections
-
-多言語Content Cluster。
+## 32. language_projections
 
 ```text
 language_projections
@@ -620,11 +503,7 @@ language_projections
 - created_at
 ```
 
----
-
-# 33. content_graph_edges
-
-内部リンク等。
+## 33. content_graph_edges
 
 ```text
 content_graph_edges
@@ -638,11 +517,7 @@ content_graph_edges
 - created_at
 ```
 
----
-
-# 34. queries
-
-検索Query。
+## 34. queries
 
 ```text
 queries
@@ -655,9 +530,7 @@ queries
 - created_at
 ```
 
----
-
-# 35. query_clusters
+## 35. query_clusters
 
 ```text
 query_clusters
@@ -669,9 +542,7 @@ query_clusters
 - created_at
 ```
 
----
-
-# 36. query_cluster_memberships
+## 36. query_cluster_memberships
 
 ```text
 query_cluster_memberships
@@ -681,9 +552,7 @@ query_cluster_memberships
 - created_at
 ```
 
----
-
-# 37. rankings
+## 37. rankings
 
 ```text
 rankings
@@ -697,9 +566,7 @@ rankings
 - measured_at
 ```
 
----
-
-# 38. serp_snapshots
+## 38. serp_snapshots
 
 ```text
 serp_snapshots
@@ -711,9 +578,7 @@ serp_snapshots
 - created_at
 ```
 
----
-
-# 39. competitor_pages
+## 39. competitor_pages
 
 ```text
 competitor_pages
@@ -728,9 +593,7 @@ competitor_pages
 - captured_at
 ```
 
----
-
-# 40. content_decay
+## 40. content_decay
 
 ```text
 content_decay
@@ -743,9 +606,7 @@ content_decay
 - evaluated_at
 ```
 
----
-
-# 41. cannibalization_pairs
+## 41. cannibalization_pairs
 
 ```text
 cannibalization_pairs
@@ -760,9 +621,7 @@ cannibalization_pairs
 - created_at
 ```
 
----
-
-# 42. url_redirects
+## 42. url_redirects
 
 ```text
 url_redirects
@@ -775,9 +634,7 @@ url_redirects
 - created_at
 ```
 
----
-
-# 43. index_status
+## 43. index_status
 
 ```text
 index_status
@@ -789,9 +646,7 @@ index_status
 - checked_at
 ```
 
----
-
-# 44. goals
+## 44. goals
 
 ```text
 goals
@@ -806,11 +661,7 @@ goals
 - created_at
 ```
 
----
-
-# 45. strategies
-
-Human-defined Strategy。
+## 45. strategies
 
 ```text
 strategies
@@ -823,23 +674,7 @@ strategies
 - created_at
 ```
 
----
-
-# 46. observations
-
-Operational Observationにも利用可能。
-
-必要ならKnowledge Observationと分離して、
-
-```text
-system_observations
-```
-
-を用意する。
-
----
-
-# 47. opportunities
+## 46. opportunities
 
 ```text
 opportunities
@@ -856,9 +691,7 @@ opportunities
 - created_at
 ```
 
----
-
-# 48. suppressions
+## 47. suppressions
 
 ```text
 suppressions
@@ -872,9 +705,7 @@ suppressions
 - created_at
 ```
 
----
-
-# 49. plans
+## 48. plans
 
 ```text
 plans
@@ -889,9 +720,7 @@ plans
 - created_at
 ```
 
----
-
-# 50. actions
+## 49. actions
 
 ```text
 actions
@@ -909,9 +738,7 @@ actions
 - executed_at
 ```
 
----
-
-# 51. action_results
+## 50. action_results
 
 ```text
 action_results
@@ -925,9 +752,7 @@ action_results
 - created_at
 ```
 
----
-
-# 52. review_tasks
+## 51. review_tasks
 
 ```text
 review_tasks
@@ -945,9 +770,7 @@ review_tasks
 - completed_at
 ```
 
----
-
-# 53. campaigns
+## 52. campaigns
 
 ```text
 campaigns
@@ -960,9 +783,7 @@ campaigns
 - status
 ```
 
----
-
-# 54. campaign_actions
+## 53. campaign_actions
 
 ```text
 campaign_actions
@@ -972,11 +793,7 @@ campaign_actions
 - created_at
 ```
 
-Campaign単位Rollbackに利用する。
-
----
-
-# 55. policies
+## 54. policies
 
 ```text
 policies
@@ -991,11 +808,7 @@ policies
 - updated_at
 ```
 
----
-
-# 56. site_policies
-
-Aggregate Policy向け。
+## 55. site_policies
 
 ```text
 site_policies
@@ -1010,9 +823,7 @@ site_policies
 - updated_at
 ```
 
----
-
-# 57. capability_autonomy
+## 56. capability_autonomy
 
 ```text
 capability_autonomy
@@ -1026,9 +837,7 @@ capability_autonomy
 - updated_at
 ```
 
----
-
-# 58. memories
+## 57. memories
 
 ```text
 memories
@@ -1043,7 +852,7 @@ memories
 - created_at
 ```
 
-`memory_type`：
+memory_type:
 
 ```text
 operational
@@ -1051,9 +860,7 @@ strategic
 policy
 ```
 
----
-
-# 59. evaluation_cases
+## 58. evaluation_cases
 
 ```text
 evaluation_cases
@@ -1065,9 +872,7 @@ evaluation_cases
 - created_at
 ```
 
----
-
-# 60. evaluation_runs
+## 59. evaluation_runs
 
 ```text
 evaluation_runs
@@ -1080,9 +885,7 @@ evaluation_runs
 - metadata
 ```
 
----
-
-# 61. evaluation_results
+## 60. evaluation_results
 
 ```text
 evaluation_results
@@ -1095,11 +898,9 @@ evaluation_results
 - created_at
 ```
 
----
+## 61. citation_checks
 
-# 62. citation_checks
-
-Future AI Search tracking。
+Future AI Search tracking:
 
 ```text
 citation_checks
@@ -1112,9 +913,7 @@ citation_checks
 - checked_at
 ```
 
----
-
-# 63. visibility_checks
+## 62. visibility_checks
 
 ```text
 visibility_checks
@@ -1127,9 +926,53 @@ visibility_checks
 - checked_at
 ```
 
----
+## 63. deployment_settings
 
-# 64. Critical Relationships
+Optional PaaS / runtime configuration.
+
+```text
+deployment_settings
+- id
+- site_id
+- runtime_type
+- worker_enabled
+- scheduler_enabled
+- vector_search_enabled
+- object_storage_enabled
+- created_at
+- updated_at
+```
+
+`runtime_type`例:
+
+```text
+render
+railway
+heroku
+fly
+docker
+```
+
+Application自体はPaaS非依存に保つ。
+
+## 64. connector_credentials
+
+SecretそのものではなくSecret Manager参照情報を保持する想定。
+
+```text
+connector_credentials
+- id
+- source_id
+- credential_type
+- secret_reference
+- status
+- created_at
+- updated_at
+```
+
+DBへ平文Secretを保存しない。
+
+## 65. Critical Relationships
 
 ```text
 Site
@@ -1162,7 +1005,7 @@ Content
 ```text
 Observation
 ↓
-Opportunity
+Opportunity / Suppression
 ↓
 Plan
 ↓
@@ -1171,27 +1014,22 @@ Action
 Action Result
 ```
 
----
+## 66. Important Constraints
 
-# 65. Important Constraints
-
-以下はDBまたはApplication Layerで保証する。
+Application / DB Layerで保証する。
 
 ```text
-Fact cannot become published truth without provenance
+Fact cannot become trusted truth without provenance
 Action cannot execute without policy evaluation
-Content Claim should preserve grounding status
+Content Claim preserves grounding status
 Knowledge updates create versions
 Entity merges are auditable
-Redirects must avoid loops
+Redirects cannot loop
 Only one canonical owner per managed field
+Secrets are not stored in plaintext
 ```
 
----
-
-# 66. Indexing Strategy
-
-特にIndexを付ける。
+## 67. Indexing Strategy
 
 ```text
 facts(entity_id, attribute)
@@ -1215,11 +1053,11 @@ actions(site_id, status)
 verification_requests(status, priority)
 ```
 
----
+## 68. Vector Columns
 
-# 67. Vector Columns
+pgvectorはOptional。
 
-pgvector対象候補：
+Candidate:
 
 ```text
 evidence.embedding
@@ -1229,48 +1067,30 @@ content_items.embedding
 passages.embedding
 ```
 
----
+Core Applicationはpgvector無しでも起動可能にする。
 
-# 68. JSONB Usage
-
-柔軟性が必要な箇所：
+## 69. JSONB Usage
 
 ```text
 source_items.raw_content
 source_items.metadata
-
 facts.value_json
-
 entities.external_ids
-
 opportunities.score_components
-
 actions.payload
-
-metrics
 ```
 
-ただし主要検索条件までJSONBへ逃がしすぎない。
+主要検索条件をJSONBへ逃がしすぎない。
 
----
+## 70. Multi-tenancy
 
-# 69. Multi-tenancy
-
-すべての主要テーブルに、
-
-```text
-site_id
-```
-
-またはTenant IDを持たせる。
+主要テーブルにはsite_idまたはtenant_idを持たせる。
 
 Tenant間Knowledge混入を防ぐ。
 
----
+## 71. Auditability
 
-# 70. Auditability
-
-重要なMutationは、
+重要Mutation:
 
 ```text
 who
@@ -1283,13 +1103,7 @@ after
 
 を追跡可能にする。
 
----
-
-# 71. Phase 1 Minimum Tables
-
-初期実装では全部を作る必要はない。
-
-最小セット：
+## 72. Phase 1 Minimum Tables
 
 ```text
 sites
@@ -1327,11 +1141,7 @@ site_policies
 memories
 ```
 
----
-
-# 72. Phase 1.5
-
-追加：
+## 73. Phase 1.5
 
 ```text
 relationships
@@ -1345,11 +1155,7 @@ url_redirects
 index_status
 ```
 
----
-
-# 73. Later Phase
-
-追加：
+## 74. Later Phase
 
 ```text
 passages
@@ -1360,11 +1166,27 @@ campaigns
 experiments
 citation_checks
 visibility_checks
+deployment_settings
 ```
 
----
+## 75. PaaS Data Principle
 
-# 74. Data Model Philosophy
+必須Stateful Componentは原則PostgreSQLのみ。
+
+初期必須にしない:
+
+```text
+Redis
+Neo4j
+Elasticsearch
+Kafka
+Dedicated Vector DB
+Persistent Disk
+```
+
+Object StorageもPhase 1ではOptional。
+
+## 76. Data Model Philosophy
 
 このデータモデルの目的はKnowledge Graphを作ることではない。
 

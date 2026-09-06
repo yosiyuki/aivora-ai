@@ -1,19 +1,15 @@
-# aivora-ai - CMS as AI
+# CMS as AI — Product Requirements & Phase 1 MVP
 
-## Product Requirements & Phase 1 MVP
-
-**Version:** 0.9  
+**Version:** 1.0  
 **Scope:** Phase 1 — Shadow Brain / AI Media Operator
 
----
-
-# 1. Product Vision
+## 1. Product Vision
 
 CMS as AIは、既存CMSにAI生成機能を追加するものではない。
 
 目指すのは、
 
-> **サイトのKnowledgeを理解し、正確性・鮮度・構造・検索機会を継続的に管理するAI CMS**
+> **サイトのKnowledgeを理解し、正確性・鮮度・構造・検索機会を継続的に管理するAIシステム**
 
 である。
 
@@ -23,84 +19,89 @@ CMS as AIは、既存CMSにAI生成機能を追加するものではない。
 
 だが、Phase 1では既存CMSを置き換えない。
 
----
+## 2. Core Philosophy
 
-# 2. Phase 1 Product Definition
+従来のCMS:
 
-Phase 1のプロダクトは、
+```text
+Human
+  ↓
+CMS
+  ↓
+Page
+```
 
-> **AI Media Operator**
+CMS as AI:
 
-として定義する。
+```text
+Goal
+ ↓
+CMS as AI
+ ↓
+Observe
+Understand
+Decide
+Plan
+Act
+Verify
+Evaluate
+Remember
+```
+
+重要な原則:
+
+- **Page is not the source of truth. Knowledge is the source of truth.**
+- **Content ≠ Page**
+- **Content = Knowledge**
+- **Page = Projection / Representation of Knowledge**
+- **生成より判断を自動化する**
+- **AIが知っていることと推測していることを混ぜない**
+- **CMSを操作するのではなく、CMSに目的を与える**
+
+## 3. Phase 1 Product Definition
+
+Phase 1は **AI Media Operator** として定義する。
 
 WordPress等の既存CMSをSource of Truthとして維持しながら、
 
 - サイトを理解する
 - Knowledgeを抽出する
-- 古い情報を発見する
+- 古いFactを発見する
 - 重複・カニバリを発見する
 - 検索機会を発見する
 - 不要な生成を抑制する
-- 人間へ確認を依頼する
+- 人間へVerification Requestを発行する
 - 改善案を作る
-- 根拠付きの更新案を生成する
+- 根拠付き更新案を生成する
+- Human Reviewを通して変更する
 
 ことを行う。
 
----
+## 4. Core User Value
 
-# 3. Phase 1 Core Principle
+ユーザーが得る価値:
 
-Phase 1では、
+- 古い情報を自動発見
+- SEO上の重複・カニバリ検出
+- GSC / GA4 / 社内Knowledge横断で機会発見
+- Slack等に眠る知識をOwned Mediaへ活用
+- Factの再確認をAIが人間へ依頼
+- 新規作成だけでなくUpdate / Merge / Prune / Do Nothingを判断
+- AI生成文章の根拠を追跡
+- サイト全体のKnowledge Healthを継続管理
 
-```text
-WordPress
-    ↓
-CMS as AI
-```
+## 5. Primary Users
 
-の一方向同期とする。
-
-CMS as AIからWordPressへの変更は、原則としてHuman Reviewを通す。
-
-双方向同期は行わない。
-
----
-
-# 4. Core User Value
-
-ユーザーが得る価値は、
-
-- サイト内の古い情報を自動発見できる
-- SEO上の重複・カニバリを発見できる
-- Search Console / GA4 / 社内Knowledgeを横断して機会を発見できる
-- Slackに眠るユーザー課題をオウンドメディアへ活用できる
-- 人間が忘れているFactの再確認をAIが依頼できる
-- 記事を増やすだけでなく、更新・統合・削除候補を判断できる
-- AI生成文章の根拠を追跡できる
-
-ことである。
-
----
-
-# 5. Primary Users
-
-Phase 1の主対象は、
-
-- オウンドメディア運営者
+- Owned Media運営者
 - SEO担当者
-- コンテンツマーケティング担当者
-- メディア責任者
+- Content Marketing担当者
 - Web担当者
-- 複数サイトを管理する事業者
+- Media Manager
+- 複数サイトを運営するAgency / Company
 
-とする。
+## 6. Phase 1 Sensors
 
----
-
-# 6. Phase 1 Sensors
-
-初期Sensorは以下に限定する。
+Required / First Class:
 
 ```text
 WordPress
@@ -109,7 +110,7 @@ GA4
 Slack
 ```
 
-次候補：
+Next:
 
 ```text
 Notion
@@ -120,13 +121,17 @@ Google Trends
 YouTube
 ```
 
-TikTok / Instagram等の外部SNS監視はPhase 1必須要件としない。
+Later:
 
----
+```text
+TikTok
+Instagram
+Other external social signals
+```
 
-# 7. Main Product Areas
+SNS監視はAPI制約・ToS・保守コストが大きいためPhase 1必須条件としない。
 
-Phase 1ではUIを以下の領域で構成する。
+## 7. Main Product Areas
 
 ```text
 Mission
@@ -136,18 +141,15 @@ Suppressions
 Verification
 Content Health
 Search Health
+Technical Health
 Actions
 Results
 Policies
 ```
 
----
+## 8. Knowledge Health
 
-# 8. Knowledge Health
-
-CMSはサイトKnowledgeの状態を監視する。
-
-主な指標：
+CMSは以下を監視する。
 
 ```text
 Fresh Facts
@@ -158,7 +160,7 @@ Missing Evidence
 Verification Requests
 ```
 
-例：
+例:
 
 ```text
 Knowledge Health: 87%
@@ -169,67 +171,49 @@ Knowledge Health: 87%
 12 verification requests
 ```
 
----
+## 9. Hybrid Knowledge
 
-# 9. Existing Website Understanding
-
-WordPressから、
-
-- Posts
-- Pages
-- Categories
-- Tags
-- URLs
-- Metadata
-- Internal Links
-- Media
-- Structured Data
-
-を取得する。
-
-AIはサイト全体について、
-
-- 何を扱っているか
-- 主要Entity
-- Audience
-- Topic Cluster
-- Search Intent
-- Knowledge Coverage
-
-をモデル化する。
-
----
-
-# 10. Hybrid Knowledge Extraction
-
-すべての文章をKnowledge Graph化しない。
-
-構造化対象：
+完全Knowledge Graph化を目的にしない。
 
 ```text
-Entity
-Fact
-Relationship
+Knowledge
+├── Structured
+│   ├── Entity
+│   ├── Fact
+│   └── Relationship
+│
+└── Unstructured / Semi-structured
+    ├── Evidence
+    ├── Observation
+    ├── Question
+    ├── Problem
+    ├── Experience
+    └── Claim
 ```
 
-非構造・半構造対象：
+価格、営業時間、住所、所要時間等の「間違うと実害がある情報」を優先的に構造化する。
+
+## 10. Source → Evidence → Knowledge
 
 ```text
-Evidence
-Observation
-Question
-Problem
-Experience
-Claim
+Source
+ ↓
+Raw Item
+ ↓
+Evidence / Signal
+ ↓
+Candidate Knowledge
+ ↓
+Validation
+ ↓
+Knowledge
 ```
 
-価格、営業時間、住所など、誤りの実害が大きい情報を優先的に構造化する。
+LLMが抽出しただけではFactに昇格しない。
 
----
+## 11. Knowledge Provenance
 
-# 11. Knowledge Provenance
-
-Knowledgeには必ず可能な限り、
+Knowledgeには可能な限り以下を持たせる。
 
 ```text
 source
@@ -237,21 +221,15 @@ confidence
 last_verified
 ```
 
-を保持する。
-
 KnowledgeとEvidenceの関係を保持し、
 
 > この情報は何を根拠にしているか
 
 を追跡できるようにする。
 
----
+## 12. Entity Resolution
 
-# 12. Entity Resolution
-
-Phase 1からEntity Resolutionを独立機能として実装する。
-
-例：
+以下のような別名をCanonical Entityへ解決する。
 
 ```text
 Cafe ABC
@@ -259,39 +237,31 @@ ABC Coffee
 ABC Nguyễn Huệ
 ```
 
-などが同一Entityかを判断する。
+低Confidenceの場合はHuman Reviewへ。
 
-低Confidenceの場合は人間に統合候補として提示する。
+## 13. Fact Lifecycle
 
----
-
-# 13. Fact Staleness Detection
-
-Factには、
+Factには以下を持たせる。
 
 ```text
 valid_from
 valid_until
 last_verified_at
 risk_level
+confidence
 ```
 
-を持たせる。
-
-一定期間確認されていないFactをStaleとして検出する。
-
-特に対象：
+旅行領域では特に、
 
 - 価格
 - 営業時間
-- 所要時間
-- 店舗状態
-- 予約条件
 - 運行情報
+- 予約条件
+- 所要時間
 
----
+をStaleness監視する。
 
-# 14. Verification Requests
+## 14. Verification Requests
 
 Stale Factや不確実なKnowledgeに対して、
 
@@ -301,17 +271,15 @@ Verification Request
 
 を発行する。
 
-例：
+例:
 
 > Cafe Aの営業時間が8ヶ月確認されていません。現地確認してください。
 
-Slack等へ通知し、返信をEvidenceとして取り込む。
+Slack / LINE / Email等を通じて人間へ確認を依頼し、返信をEvidenceへ戻す。
 
----
+## 15. Internal Knowledge Mining
 
-# 15. Slack Knowledge Mining
-
-Slackの会話から、
+Slack等から、
 
 ```text
 Observation
@@ -322,26 +290,11 @@ Experience
 
 を抽出する。
 
-例：
+Raw Slackの文章を直接公開しない。
 
-```text
-「最近Grabの乗り場を聞かれることが増えた」
-```
+## 16. Opportunity Engine
 
-↓
-
-```text
-Observation:
-Grab乗車場所への質問増加
-```
-
-Slack本文そのものを直接公開しない。
-
----
-
-# 16. Opportunity Detection
-
-CMSは、
+以下を組み合わせて機会を発見する。
 
 ```text
 Internal Knowledge
@@ -355,44 +308,27 @@ SERP
 Freshness
 ```
 
-から機会を発見する。
+Opportunity Scoreはコードで計算し、LLMには出させない。
 
-Opportunity Scoreはコードで計算し、LLMには生成させない。
-
----
-
-# 17. Suppression Engine
+## 17. Suppression Engine
 
 Opportunity Engineと同格で、
 
-```text
-Suppression Engine
-```
+> **何をやるべきではないか**
 
-を持つ。
+を判断する。
 
-判断対象：
+抑制要因:
 
-- 既存記事とカニバリする
-- SERPで勝ち目がない
-- Information Gainがない
-- 類似記事が多い
-- サイト変更量が多すぎる
-- 独自Evidenceがない
+- Cannibalization
+- Low Information Gain
+- Low win probability
+- Insufficient Evidence
+- Excessive publishing / change rate
+- Duplicate intent
+- Quality risk
 
-場合は、
-
-```text
-DO NOT CREATE
-```
-
-を判断できる。
-
----
-
-# 18. Possible Decisions
-
-CMSが出せる判断は、
+## 18. Possible Decisions
 
 ```text
 KEEP
@@ -408,108 +344,116 @@ CREATE
 DO NOTHING
 ```
 
-とする。
+Createだけを成功Actionにしない。
 
-Createを唯一の成功Actionにしない。
+## 19. Information Gain Gate
 
----
+新規Content提案にはInformation Gain判定を必須とする。
 
-# 19. Information Gain Gate
-
-新規記事提案には必ずInformation Gain判定を行う。
-
-評価対象：
+評価対象:
 
 - 一次情報
-- 実体験
-- 独自写真
+- 現地確認
+- 独自写真 / 動画
 - 独自測定
-- 既存SERPにないFact
+- 独自Experience
+- SERP上位にないFact
 - 自社独自Knowledge
-- 現地スタッフ確認
 
-Information Gainが不足する場合は、新規記事作成を抑制する。
+不足する場合:
 
----
+```text
+REJECT_NEW_CONTENT
+```
 
-# 20. Content Decay Detection
+## 20. Content Decay & Cannibalization
 
-既存記事について、
+既存Contentについて、
 
 ```text
 Traffic Decay
 Ranking Decay
 CTR Decay
-Stale Facts
+Fact Staleness
 Broken Links
+Query Overlap
 ```
 
 を監視する。
 
-新規記事生成より既存資産の改善を優先する。
+必要に応じてUpdate / Merge / Redirect / Noindexを提案する。
 
----
-
-# 21. Cannibalization Detection
-
-同一または近似Search Intentについて複数URLが競合している場合、
+## 21. Grounded Content
 
 ```text
-Cannibalization Candidate
+Knowledge
+ ↓
+Draft
+ ↓
+Claim Extraction
+ ↓
+Knowledge Matching
+ ↓
+Grounding Check
 ```
 
-として検出する。
+Unsupported ClaimはReview対象。
 
-AIは、
+重要なのは、
 
-- Keep
-- Merge
-- Redirect
-- Reposition
+> AIが自然に書けるか
 
-を提案する。
+ではなく、
 
----
+> CMSがその文章の根拠を説明できるか
 
-# 22. Pruning Recommendations
+である。
 
-以下を検出する。
+## 22. Search World
+
+World Modelに以下を含める。
 
 ```text
-Zero Traffic
-No Backlinks
-Duplicate Intent
-Index Bloat
-Expired Content
-Broken Knowledge
+queries
+query_clusters
+search_intents
+serp_snapshots
+competitor_pages
+rankings
+search_visibility
 ```
 
-削除・noindex・統合はHuman Approvalを必須とする。
+SEOはDemandだけでなく、Difficulty / Win Angle / Information Gainも考える。
 
----
+## 23. Query Fan-out / Topic Coverage
 
-# 23. Internal Link Recommendations
-
-内部リンクを単純な関連度だけで提案しない。
-
-以下を考慮する。
+Entity / Fact / Question / Problemを使い、
 
 ```text
-Topic Cluster
-Link Depth
-Anchor Diversity
-Inbound Distribution
-Orphan Pages
-Existing Link Density
+Query Cluster Coverage
 ```
 
-Phase 1では基本的に提案のみとする。
+を把握する。
 
----
+単一Keywordではなく、Topic全体でKnowledge Gapを検出する。
 
-# 24. Technical SEO Recommendations
+## 24. AI Search
 
-Phase 1で検出・提案対象とする。
+Search VisibilityはGoogle Rankingだけに限定しない。
+
+```text
+Organic Search
+AI Search
+Search AI Features
+Video Search
+Other Discovery Channels
+```
+
+将来的にcitation_checks / visibility_checksを追加可能にする。
+
+## 25. Technical SEO
+
+Phase 1から以下を監視・提案対象にする。
 
 ```text
 Canonical
@@ -522,51 +466,69 @@ Broken Links
 Internal Link Graph
 ```
 
----
+## 26. Content Graph
 
-# 25. Grounded Content Update
-
-既存記事の更新案を生成する場合、
+Knowledge GraphとContent Graphを分ける。
 
 ```text
-Knowledge
-↓
-Draft
-↓
-Claim Extraction
-↓
-Knowledge Matching
-↓
-Grounding Check
+Knowledge Graph
+= 世界について何を知っているか
+
+Content Graph
+= KnowledgeをWeb上でどう配置しているか
 ```
 
-を行う。
+内部リンクはAnchor Diversity / Link Depth / Orphan Pages / Topic Clusterを考慮する。
 
-根拠のないClaimはReview対象とする。
-
----
-
-# 26. Human Review
-
-Phase 1では、
+## 27. Goal Driven Operation
 
 ```text
-AI Proposal
-↓
-Diff / Preview
-↓
-Human Review
-↓
-Publish
+Goal
+ ↓
+Feasibility Check
+ ↓
+Human Strategy
+ ↓
+AI Planning
+ ↓
+Actions
 ```
 
-を基本とする。
+AIにGoalだけを渡して完全自律させない。
 
----
+## 28. Feasibility Check
 
-# 27. Earned Autonomy
+CMSは達成不能なGoalを拒否または修正提案できる。
 
-自動化は後から解放する。
+> **目標を突き返せるAI**
+
+を設計原則とする。
+
+## 29. Policy
+
+### Operational Policy
+
+```text
+Can edit
+Can publish
+Can delete
+Can redirect
+Can noindex
+Can change price
+```
+
+### Editorial Policy
+
+```text
+No unsupported claims
+No exaggerated claims
+No fake experience
+Reader benefit first
+Brand tone
+No low-value SEO pages
+```
+
+## 30. Earned Autonomy
 
 ```text
 Level 0 — Observe
@@ -576,13 +538,9 @@ Level 3 — Low-risk Auto
 Level 4 — Policy-bounded Autonomous
 ```
 
-Site × Capabilityごとに設定する。
+Site × Capability単位で設定する。
 
----
-
-# 28. Aggregate Policy
-
-単一Actionだけでなく、サイト全体の変更量を制御する。
+## 31. Aggregate Policy
 
 ```text
 max_new_pages_per_week
@@ -592,11 +550,11 @@ max_redirects_per_batch
 max_links_changed_per_day
 ```
 
----
+1件は安全でも大量なら危険、を制御する。
 
-# 29. Emergency Stop
+## 32. Emergency Stop
 
-以下で自動ActionをFreezeできるようにする。
+以下でAutomationをFreeze可能にする。
 
 ```text
 Large traffic drop
@@ -607,16 +565,16 @@ Manual action
 Large ranking loss
 ```
 
----
+Campaign単位Rollbackも将来的に対応する。
 
-# 30. Phase 1 Eval
+## 33. Evaluation
 
-最低限以下を計測する。
+最低限:
 
 ```text
 Knowledge Extraction Accuracy
 Entity Resolution Accuracy
-Fact / Claim Accuracy
+Fact / Claim Classification Accuracy
 Groundedness
 Unsupported Claim Rate
 Opportunity Acceptance Rate
@@ -625,72 +583,65 @@ Action Rejection Rate
 Rollback Rate
 ```
 
----
+## 34. Primary Product KPI
 
-# 31. Primary Product KPI
-
-AIが何記事書いたかではなく、
+重視するのは記事生成数ではなく、
 
 ```text
 Proposal Acceptance Rate
 Human Edit Rate
 Verification Completion Rate
 Stale Fact Reduction
-Content Decay Reduction
 Cannibalization Resolution
 Rollback Rate
 ```
 
-を重視する。
+## 35. Deployment / Installation Principle
 
----
+Productとして、
 
-# 32. What Phase 1 Does Not Do
+> **PaaS-first, Docker-portable**
 
-Phase 1では以下を目標にしない。
+を採用する。
+
+Coreは以下だけで起動できることを目標とする。
 
 ```text
-Full autonomous publishing
-Full Knowledge Graph
-Perfect ontology
-Full social monitoring
-Continuous AI learning
-Mass article generation
-Full multi-channel publishing
+1 application image
+1 PostgreSQL database
+1 LLM API
 ```
 
----
+External integrationsはOptional。
 
-# 33. Phase 1 Success Condition
+理想の初期体験:
 
-Phase 1が成功した状態は、
+```text
+Deploy
+↓
+Open App
+↓
+Create Admin
+↓
+Enter Site URL
+↓
+Connect WordPress
+↓
+Select LLM Provider
+↓
+Start Scan
+```
 
-> CMSが既存サイトを理解し、人間より高頻度で問題・機会・古いKnowledgeを発見し、信頼できる改善提案を継続的に出せる
+## 36. Phase 1 Success Condition
 
-ことである。
+> CMSが既存サイトを理解し、人間より高頻度で問題・機会・古いKnowledgeを発見し、信頼できる改善提案を継続的に出せること。
 
----
+## 37. Product Positioning
 
-# 34. Product Positioning
-
-Phase 1では、
-
-> **AIが記事を書くCMS**
-
-ではなく、
+Phase 1:
 
 > **サイトを理解し、維持し、育てるAI Media Operator**
 
-として位置づける。
+最終思想:
 
----
-
-# 35. Product Philosophy
-
-最も重要な原則：
-
-> **生成より判断を自動化する。**
-
-そして、
-
-> **CMSを操作するのではなく、CMSに目的を与える。**
+> **サイトのKnowledgeを自律的に維持・成長させるAIシステム**
