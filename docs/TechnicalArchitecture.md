@@ -1,6 +1,6 @@
 # CMS as AI — Technical Architecture
 
-**Version:** 1.0  
+**Version:** 2.0  
 **Architecture Principle:** PaaS-first, Docker-portable
 
 ## 1. Architecture Goal
@@ -86,29 +86,32 @@ Memory
 
 ## 4. Connector Layer
 
-Phase 1:
+外部システムとの接続を担当する。**すべて入力専用。**
+
+Phase 1（すべて任意）:
 
 ```text
-WordPress Connector
-Search Console Connector
-GA4 Connector
+Website Connector（クロール）
 Slack Connector
+Notion Connector
+SNS Connector
+WordPress Connector
 ```
 
 Later:
 
 ```text
-Notion
+Search Console
+GA4
 Obsidian
 CRM
 Support
-Google Trends
 YouTube
-TikTok
-Instagram
 ```
 
 ConnectorsはPlugin的に追加可能にし、Coreと分離する。
+
+入力源が1つも無い状態でも、システムは動作しなければならない。
 
 ## 5. Ingestion Pipeline
 
@@ -418,41 +421,48 @@ Core Web Vitals
 Internal Link Graph
 ```
 
-## 22. WordPress Adapter
+## 22. Publishing Layer
 
-Phase 1:
+**CMS as AI 自身が出力CMSであり、ページを生成し配信する。**
 
 ```text
-WordPress
+Knowledge
+↓
+Passage / Answer Block
+↓
+Page
+↓
+Publishing Layer
+↓
+HTTP Response
+```
+
+配信はアプリケーション内で行う（§40）。静的生成・外部CDNを前提としない。
+
+```text
+1 deployment = 1 customer = 1 site
+単一ドメインで配信する
+```
+
+サブドメイン発行・中央DNSを必要としない。
+
+## 23. Input Connectors
+
+外部システムは**入力源**であり、書き戻し先ではない。
+
+```text
+Website / Slack / Notion / SNS / WordPress
 ↓
 CMS as AI
 ```
 
-Field Ownershipを明示する。
+すべて任意。入力源が1つも無くても運用を開始できる。
 
-例:
+**WordPress Connector は Optional機能**であり、
+他のConnectorに対して特別な地位を持たない。
 
-```text
-Body → WordPress
-Canonical → SEO Plugin
-Schema → CMS as AI
-```
-
-複数システムで同一Fieldを書かない。
-
-## 23. Avoid Bidirectional Sync
-
-設計原則:
-
-```text
-One domain
-One canonical owner
-```
-
-Phase 1はWP→AI。  
-将来AIがCanonicalになった場合はAI→WP。
-
-無制限な双方向同期は避ける。
+一方向（外部 → CMS as AI）のみとし、外部システムへの書き込みを行わない。
+これにより Field Ownership の衝突が構造的に発生しない。
 
 ## 24. Planner
 
@@ -542,31 +552,43 @@ verification.*
 
 ## 29. Review System
 
+**Phase 1では個別Actionごとの人間承認を行わない。**
+
+人間の操作は初期設定のみを必須とし、以降は Policy Engine が機械的に適用する。
+
+Review UI は承認キューではなく**事後の観測面**として機能する。
+
 ```text
-Proposal
+実行されたAction
 ↓
-Diff
+Diff / Evidence / Reason
 ↓
-Evidence
-↓
-Reason
-↓
-Human Review
+観測・監査（事後）
 ```
 
-Review結果はOperational Memoryへ保存する。
+コンテンツ編集機能を持たない。既存CMSの管理画面を再現しない。
+
+実行結果はOperational Memoryへ保存する。
 
 ## 30. Earned Autonomy
 
-Site × Capabilityで管理。
+Site × Capabilityで管理する。
 
 ```text
-Fact Verification → Level 4
-Schema → Level 4
-Internal Link → Level 2
-Content Update → Level 1
-Delete → Level 0
+Level 0 — Observe
+Level 1 — Recommend
+Level 2 — Draft
+Level 3 — Low-risk Auto
+Level 4 — Policy-bounded Autonomous
 ```
+
+**Phase 1では初期設定で方針を一度与え、以降は個別承認を求めない。**
+
+不可逆な操作を系から排除している（物理削除を行わない）ため、
+Level 4 でも Campaign Rollback による回復可能性を維持できる。
+
+`capability_autonomy` は success / rejection / rollback を記録し、
+実績に基づく調整を可能にする。
 
 ## 31. Aggregate Policy
 
@@ -580,6 +602,9 @@ Link Change Count
 ```
 
 を評価する。
+
+**個別承認を行わない設計では、Aggregate Policy と Emergency Stop が
+唯一の安全装置となる。既定値は保守的に設定する。**
 
 ## 32. Emergency Stop & Campaign Rollback
 
@@ -661,7 +686,48 @@ Strong Model
 → planning / complex reasoning / drafting
 ```
 
-## 37. Search / Vector Strategy
+Model Routing はコスト最適化の主要な手段である。
+`llm_usage` の operation_type 別集計を用いて配分を見直す。
+
+## 37. Cost Control
+
+**生成量の主たる歯止めは LLM API のコストとする。**
+
+```text
+LLM呼び出し
+↓
+llm_usage へ記録（tokens / model / operation_type / cost）
+↓
+月次集計
+↓
+予算判定
+```
+
+### 予算配分
+
+```text
+観測・維持（固定費）  Sensors取り込み・抽出・Staleness評価
+                      常時動作し、停止しない
+
+生成（変動費）        残予算で実行
+                      優先順位: Verification → Update → Create
+```
+
+観測を停止すると Stale Fact が検出されなくなり、
+古い情報が公開され続けるため、観測は最優先で維持する。
+
+### 予算超過時
+
+```text
+budget_action = degrade（既定）
+```
+
+停止せず、小さいモデルへ切り替えて継続する。
+
+**degrade しても Content Grounding Engine（§19）は省略しない。**
+文章品質は落としてよいが、根拠検証は落とさない。
+
+## 38. Search / Vector Strategy
 
 Embedding用途:
 
@@ -674,7 +740,7 @@ Truth判定をEmbeddingだけに依存しない。
 
 pgvectorはOptionalにする。
 
-## 38. Deployment Principle
+## 39. Deployment Principle
 
 > **PaaS-first, Docker-portable.**
 
@@ -688,7 +754,7 @@ Core must run with:
 
 Workers / Schedulersは同じApplication Imageを使う。
 
-## 39. PaaS Target
+## 40. PaaS Target
 
 グローバルで一般的なPaaSを想定する。
 
@@ -707,13 +773,14 @@ Fallback:
 Generic Docker
 ```
 
-## 40. Minimal PaaS Shape
+## 41. Minimal PaaS Shape
 
 ```text
 GitHub
   ↓
 PaaS
-├── Web
+├── Web        （管理UI）
+├── Public     （生成ページ配信）
 ├── Worker
 └── Scheduler
       ↓
@@ -722,13 +789,18 @@ Managed PostgreSQL
 +
 External APIs
 ├── LLM
-├── WordPress
-├── GSC
-├── GA4
-└── Slack
+└── Input Sources（Slack / Notion / SNS / WordPress ...）
 ```
 
-## 41. Stateful Components
+公開ページ配信は同一イメージの別プロセスとして分離し、
+管理UIとトラフィックを相互に干渉させない。
+
+```text
+1 deployment = 1 customer = 1 site
+単一ドメインで配信する
+```
+
+## 42. Stateful Components
 
 **PostgreSQLを唯一の必須Stateful Componentにする。**
 
@@ -744,7 +816,7 @@ Persistent Disk
 Kubernetes
 ```
 
-## 42. Job Queue
+## 43. Job Queue
 
 Redisを必須にしない。
 
@@ -756,7 +828,7 @@ Solid Queue
 
 等、PostgreSQLだけで完結する方式を優先する。
 
-## 43. Filesystem
+## 44. Filesystem
 
 PaaSのLocal Filesystemを永続ストレージとして信用しない。
 
@@ -775,13 +847,16 @@ Object Storage
 
 をOptional追加。
 
-## 44. One Image, Multiple Processes
+## 45. One Image, Multiple Processes
 
 同一Docker Imageを使う。
 
 ```text
 Web:
-  command: web
+  command: web        # 管理UI
+
+Public:
+  command: public     # 生成ページ配信
 
 Worker:
   command: worker
@@ -790,9 +865,12 @@ Scheduler:
   command: scheduler
 ```
 
+公開ページ配信を分離することで、
+エンドユーザーのトラフィックが管理UIに影響しない。
+
 PaaS固有コードをApplicationへ埋め込まない。
 
-## 45. Environment Configuration
+## 46. Environment Configuration
 
 Deploy直後は最低限:
 
@@ -806,7 +884,9 @@ APP_SECRET
 
 WordPress / GSC / GA4 / SlackはUIから接続可能にする。
 
-## 46. Setup UX
+## 47. Setup UX
+
+**人間の操作を必須とするのは初期設定のみ。**
 
 ```text
 Deploy to PaaS
@@ -815,18 +895,41 @@ Open App
 ↓
 Create Admin
 ↓
-Enter Site URL
+Q1: あなたの役割は？        ← 唯一の固定質問
 ↓
-Connect WordPress
+役割に応じた適応的ヒアリング
 ↓
-Select LLM Provider
+入力源の接続（任意）
 ↓
-Start Scan
+運用開始
 ```
 
-ユーザーに初期からOntology / Entity Schema / Agent設定を要求しない。
+### 適応的ヒアリング
 
-## 47. Recommended Phase 1 Stack
+1問目で役割を検出し、以降の質問・用語・既定値を切り替える。
+
+```text
+専門家   → 専門用語で聞く。Policy編集権を開放
+事業者   → 「お店のことを教えてください」
+個人     → 「何について書きたいですか」
+```
+
+ヒアリング結果は goals / strategies / policies / site_policies へ構造化して保存する。
+対話ログ自体は Evidence / Knowledge に入れない（意図と事実を混ぜない）。
+
+Goal の数値化（metric / target_value / target_date）はシステム側が行い、
+利用者に数値目標の設定を要求しない。
+
+ユーザーに Ontology / Entity Schema / Agent設定を要求しない。
+
+### 初回動作
+
+```text
+入力源あり → 取り込みから開始
+入力源なし → ヒアリング内容のみで記事を1本生成
+```
+
+## 48. Recommended Phase 1 Stack
 
 一例:
 
@@ -843,7 +946,7 @@ Slack API
 Docker
 ```
 
-## 48. Application Shape
+## 49. Application Shape
 
 初期はMicroservices化しない。
 
@@ -861,7 +964,7 @@ Policy
 Evaluation
 ```
 
-## 49. Observability
+## 50. Observability
 
 最低限:
 
@@ -876,7 +979,7 @@ Rollback events
 Connector health
 ```
 
-## 50. Security
+## 51. Security
 
 ```text
 Tenant isolation
@@ -888,7 +991,7 @@ Rate limits
 Prompt injection isolation
 ```
 
-## 51. Final Architecture Principle
+## 52. Final Architecture Principle
 
 > **Brainは高度でも、Deploymentは普通のWebアプリであるべき。**
 

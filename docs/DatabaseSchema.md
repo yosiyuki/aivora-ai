@@ -1,6 +1,6 @@
 # CMS as AI — Data Model & Database Schema
 
-**Version:** 1.0  
+**Version:** 2.0  
 **Target:** Phase 1 + future extensibility
 
 ## 1. Modeling Principles
@@ -14,6 +14,8 @@ Actions are auditable
 Scores are reproducible
 LLM output is not truth
 PostgreSQL is the primary state store
+Nothing is physically deleted
+Cost is tracked and bounded
 ```
 
 ## 2. Core Domains
@@ -43,10 +45,14 @@ sites
 - domain
 - primary_language
 - timezone
+- user_role          # ヒアリング1問目の結果（expert / business / individual）
 - status
 - created_at
 - updated_at
 ```
+
+Phase 1 は 1 deployment = 1 customer = 1 site とする。
+`site_id` は将来の拡張のため全テーブルで維持する。
 
 ## 4. sources
 
@@ -209,10 +215,19 @@ claims
 - site_id
 - entity_id
 - statement
+- claim_kind          # verifiable / experiential / general
 - confidence
 - status
 - created_at
 - updated_at
+```
+
+`claim_kind` により生成時の扱いを変える。
+
+```text
+verifiable    検証可能な事実。Knowledge必須。無ければ空欄 + Verification Request
+experiential  本人の体験・意見。ヒアリング内容が出典
+general       一般常識。書けるが Fact として保存しない
 ```
 
 ## 14. relationships
@@ -819,9 +834,14 @@ site_policies
 - max_site_change_ratio
 - max_redirects_per_batch
 - max_links_changed_per_day
+- monthly_budget
+- budget_action       # degrade（既定） / stop
 - created_at
 - updated_at
 ```
+
+個別Action承認を行わない設計では、
+これらの上限値と Emergency Stop が唯一の安全装置となる。
 
 ## 56. capability_autonomy
 
@@ -972,7 +992,30 @@ connector_credentials
 
 DBへ平文Secretを保存しない。
 
-## 65. Critical Relationships
+## 65. llm_usage
+
+LLM API の使用量とコストを記録する。**Phase 1 必須。**
+
+```text
+llm_usage
+- id
+- site_id
+- operation_type      # extraction / entity_resolution / drafting / planning / grounding
+- model
+- input_tokens
+- output_tokens
+- estimated_cost
+- related_type        # 何のための呼び出しか
+- related_id
+- created_at
+```
+
+生成量の主たる歯止めはコストであるため、本テーブルは監視用ではなく
+**制御用のデータとして扱う**。
+
+`operation_type` 別の集計により Model Routing を見直す。
+
+## 66. Critical Relationships
 
 ```text
 Site
@@ -1014,7 +1057,7 @@ Action
 Action Result
 ```
 
-## 66. Important Constraints
+## 67. Important Constraints
 
 Application / DB Layerで保証する。
 
@@ -1029,7 +1072,7 @@ Only one canonical owner per managed field
 Secrets are not stored in plaintext
 ```
 
-## 67. Indexing Strategy
+## 68. Indexing Strategy
 
 ```text
 facts(entity_id, attribute)
@@ -1053,7 +1096,7 @@ actions(site_id, status)
 verification_requests(status, priority)
 ```
 
-## 68. Vector Columns
+## 69. Vector Columns
 
 pgvectorはOptional。
 
@@ -1069,7 +1112,7 @@ passages.embedding
 
 Core Applicationはpgvector無しでも起動可能にする。
 
-## 69. JSONB Usage
+## 70. JSONB Usage
 
 ```text
 source_items.raw_content
@@ -1082,13 +1125,13 @@ actions.payload
 
 主要検索条件をJSONBへ逃がしすぎない。
 
-## 70. Multi-tenancy
+## 71. Multi-tenancy
 
 主要テーブルにはsite_idまたはtenant_idを持たせる。
 
 Tenant間Knowledge混入を防ぐ。
 
-## 71. Auditability
+## 72. Auditability
 
 重要Mutation:
 
@@ -1103,7 +1146,9 @@ after
 
 を追跡可能にする。
 
-## 72. Phase 1 Minimum Tables
+## 73. Phase 1 Minimum Tables
+
+主経路（ヒアリング → Knowledge → 生成 → 配信 → 検証）に必要なもの。
 
 ```text
 sites
@@ -1118,44 +1163,77 @@ claims
 evidence_links
 knowledge_versions
 
+questions
+problems
+experiences
+
 content_items
 content_versions
 content_claims
-
-queries
-rankings
 
 fact_staleness
 verification_requests
 verification_events
 
-opportunities
-suppressions
+goals
+strategies
 plans
 actions
 action_results
-review_tasks
 
 policies
 site_policies
+capability_autonomy
 memories
+
+llm_usage
 ```
 
-## 73. Phase 1.5
+**v1.0 からの変更:**
 
 ```text
-relationships
-questions
-problems
-experiences
-content_graph_edges
-content_decay
-cannibalization_pairs
-url_redirects
-index_status
+昇格（v1.0では Phase 1.5）:
+  questions / problems / experiences
+  → Experiential Claim の受け皿として主経路に必要
+
+降格（v1.0では Phase 1 必須）:
+  queries / rankings / opportunities / suppressions
+  → 運用期（データ蓄積後）に有効化する機能のため
+
+新規:
+  llm_usage
 ```
 
-## 74. Later Phase
+## 74. 運用期 — Progressive Activation
+
+段階的に有効化する機能とテーブル。
+受け皿は最初から存在させるが、実装の優先順位は主経路の後とする。
+
+```text
+Fact発生後:
+  （Phase 1 のテーブルで対応）
+
+トラフィック / ランキングデータ蓄積後:
+  content_decay
+  cannibalization_pairs
+  queries
+  rankings
+
+GSC接続後:
+  opportunities
+  suppressions
+
+運用期:
+  relationships
+  content_graph_edges
+  url_redirects
+  index_status
+```
+
+各機能は自身の前提データの有無を判定し、自律的に有効化する。
+`mode` のような状態変数を持たない。
+
+## 75. Later Phase
 
 ```text
 passages
@@ -1169,7 +1247,7 @@ visibility_checks
 deployment_settings
 ```
 
-## 75. PaaS Data Principle
+## 76. PaaS Data Principle
 
 必須Stateful Componentは原則PostgreSQLのみ。
 
@@ -1186,7 +1264,7 @@ Persistent Disk
 
 Object StorageもPhase 1ではOptional。
 
-## 76. Data Model Philosophy
+## 77. Data Model Philosophy
 
 このデータモデルの目的はKnowledge Graphを作ることではない。
 
