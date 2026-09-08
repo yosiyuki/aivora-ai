@@ -552,7 +552,81 @@ Goal の数値化（metric / target_value / target_date）はシステム側が�
 
 生成した記事の空欄をVerification Requestで埋め、Knowledgeを育てる。
 
-## 28. Feasibility Check
+## 28. Site Structure / Archetype
+
+**サイト構造は利用者が選ぶのではなく、目的から導出する。**
+
+```text
+Q1: 役割        → 語彙・深さ・Policy編集権
+目的ヒアリング   → Archetype → 構造 + 必要Knowledgeスロット
+```
+
+利用者は Archetype という概念に触れない。
+Ontology / Entity Schema を要求しないのと同じ理由による（§27）。
+
+### Archetype
+
+Archetype は見た目の分類ではなく、**Goal の構造的表現**である。
+
+```text
+目的                      metric        Archetype        構造
+
+お店を知ってほしい          来店・問合せ   business        Top / サービス / FAQ / お知らせ
+知見を発信したい            訪問・回遊     media           Top / 記事一覧 / カテゴリ / 記事
+質問に答えたい              自己解決       knowledge_base  Top / トピック / Q&A
+実績を見せたい              到達・連絡     portfolio       Top / 作品 / プロフィール
+```
+
+### 複合型
+
+実際には複数の目的を持つ利用者が多いため、複合を許す。
+
+```text
+primary_archetype      business
+secondary_archetypes   [media]
+```
+
+### Knowledge スロット
+
+Archetype は必要とするKnowledgeスロットを定義する。
+**スロットの優先度は、目的への貢献度で決まる。**
+
+```text
+business
+  必須: 場所 / 営業時間 / 提供内容 / 連絡手段
+  → 欠けていると目的を達成できないため、
+    Verification Request の優先度が高い
+
+media
+  営業時間の欠落は目的に影響しないため、優先度は低い
+```
+
+Knowledge Health（§8）の算出も Archetype に依存する。
+
+### 構造定義は製品が持つ
+
+Archetype ごとの構造・必須スロット・優先度は**製品固定のマスタ**とする。
+AIが行うのは「目的からどのArchetypeか」の判定のみであり、
+構造そのものを発明させない。
+
+理由は Editorial Policy を製品固定とするのと同じ（§29）。
+
+### URL不変の規律
+
+```text
+一度発行したURLは変更しない
+```
+
+目的が変化して Archetype が追加されても、既存URLは動かさない。
+構造は**足せるが動かさない**。
+
+Knowledge の増減でページを消さない（§23 物理削除の禁止と一致）。
+公開停止は status の変更で表現する。
+
+**理由:** URLが動くと検索評価が積み上がらず、
+Content Decay を検出すべきシステム自身が Decay を生むことになる。
+
+## 29. Feasibility Check
 
 CMSは達成不能なGoalを拒否または修正提案できる。
 
@@ -563,7 +637,7 @@ CMSは達成不能なGoalを拒否または修正提案できる。
 **運用期に有効化する。** 新規サイトに適用すると、
 ほぼすべての目標に「達成困難」と返すことになり、機能しないため。
 
-## 29. Policy
+## 30. Policy
 
 ### Operational Policy
 
@@ -594,7 +668,7 @@ AIはヒアリング内容から制約を**追加**できるが、
 
 理由: LLMの出力を縛る枠を同じLLMに決めさせると、枠の意味が失われるため。
 
-## 30. Earned Autonomy
+## 31. Earned Autonomy
 
 ```text
 Level 0 — Observe
@@ -609,7 +683,7 @@ Level 4 — Policy-bounded Autonomous
 個別Actionごとの人間承認は行わない。
 不可逆な操作を系から排除している（§23）ため、Level 4でも回復可能性を維持できる。
 
-## 31. Aggregate Policy
+## 32. Aggregate Policy
 
 ```text
 max_new_pages_per_week
@@ -624,7 +698,7 @@ max_links_changed_per_day
 **Human Reviewが無い設計では、Aggregate Policy と Emergency Stop が
 唯一の安全装置となる。既定値は保守的に置く。**
 
-## 32. Cost Control
+## 33. Cost Control
 
 **生成量の主たる歯止めは LLM API のコストとする。**
 
@@ -667,7 +741,7 @@ budget_action = degrade（既定）
 **degradeしてもGrounding Check（§21）は省略しない。**
 文章の質は落としてよいが、根拠の検証は落とさない。
 
-## 33. Emergency Stop
+## 34. Emergency Stop
 
 以下でAutomationをFreeze可能にする。
 
@@ -682,7 +756,7 @@ Large ranking loss
 
 Campaign単位Rollbackに対応する。
 
-## 34. Evaluation
+## 35. Evaluation
 
 最低限:
 
@@ -697,7 +771,7 @@ Action Rejection Rate
 Rollback Rate
 ```
 
-## 35. Primary Product KPI
+## 36. Primary Product KPI
 
 重視するのは記事生成数ではなく、
 
@@ -717,7 +791,7 @@ Proposal Acceptance Rate
 Cannibalization Resolution
 ```
 
-## 36. Progressive Activation
+## 37. Progressive Activation
 
 立ち上げ期と運用期は**モードの切り替えではなく、機能ごとの段階的有効化**とする。
 
@@ -737,7 +811,7 @@ Technical SEO             → 運用期
 
 **立ち上げ期はできるだけ短くし、初期設定の延長として扱う。**
 
-## 37. Deployment / Installation Principle
+## 38. Deployment / Installation Principle
 
 > **PaaS-first, Docker-portable**
 
@@ -758,12 +832,12 @@ External integrationsはOptional。
 配信は単一ドメインで行う。サブドメイン発行の仕組みを持たない。
 中央DNS・中央インフラを必要としない。
 
-## 38. Phase 1 Success Condition
+## 39. Phase 1 Success Condition
 
 > 専門知識を持たない利用者が、目的を伝えるだけで、
 > 根拠のあるサイトを立ち上げ、予算内で継続的に維持・成長させられること。
 
-## 39. Product Positioning
+## 40. Product Positioning
 
 Phase 1:
 

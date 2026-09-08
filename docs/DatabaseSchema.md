@@ -46,6 +46,7 @@ sites
 - primary_language
 - timezone
 - user_role          # ヒアリング1問目の結果（expert / business / individual）
+- primary_archetype  # 目的から導出（business / media / knowledge_base / portfolio）
 - status
 - created_at
 - updated_at
@@ -436,8 +437,9 @@ content_items
 - id
 - site_id
 - content_type
+- archetype_page_type  # top / list / detail / article / faq ...
 - external_id
-- url
+- url                  # 発行後は不変。変更は REDIRECT のみ
 - canonical_url
 - language
 - title
@@ -672,9 +674,13 @@ goals
 - metric
 - target_value
 - target_date
+- archetype           # この目的が要求する構造
 - status
 - created_at
 ```
+
+Archetype は Goal の構造的表現であり、利用者が選ぶものではない。
+目的のヒアリング結果から導出する。
 
 ## 45. strategies
 
@@ -992,7 +998,57 @@ connector_credentials
 
 DBへ平文Secretを保存しない。
 
-## 65. llm_usage
+## 65. archetype_definitions
+
+Archetype ごとの構造定義。**製品が保持する固定マスタ。**
+
+```text
+archetype_definitions
+- archetype           # business / media / knowledge_base / portfolio
+- page_structure      # 生成すべきページ種別
+- required_slots      # 必須Knowledgeスロット
+- priority_weights    # スロットの優先度
+```
+
+例:
+
+```text
+business
+  page_structure  Top / サービス / FAQ / お知らせ
+  required_slots  場所 / 営業時間 / 提供内容 / 連絡手段
+  priority        高（欠けると目的を達成できない）
+
+media
+  page_structure  Top / 記事一覧 / カテゴリ / 記事
+  required_slots  トピック / 対象読者
+  priority        営業時間等は低（目的に影響しない）
+```
+
+**AIが行うのは「目的からどのArchetypeか」の判定のみ**であり、
+構造そのものを生成させない。Editorial Policy を製品固定とするのと同じ理由による。
+
+`required_slots` の充足状況が Verification Request の生成元となり、
+`priority_weights` が Knowledge Health の算出に用いられる。
+
+## 66. site_archetypes
+
+複合Archetypeを表現する。
+
+```text
+site_archetypes
+- id
+- site_id
+- archetype
+- is_primary
+- activated_at
+```
+
+「店舗紹介 + ブログ」のように複数の目的を持つ場合、
+主Archetypeに追加Archetypeを重ねる。
+
+Archetype の追加は構造を**足す**が、既存URLを変更しない。
+
+## 67. llm_usage
 
 LLM API の使用量とコストを記録する。**Phase 1 必須。**
 
@@ -1015,7 +1071,7 @@ llm_usage
 
 `operation_type` 別の集計により Model Routing を見直す。
 
-## 66. Critical Relationships
+## 68. Critical Relationships
 
 ```text
 Site
@@ -1057,7 +1113,7 @@ Action
 Action Result
 ```
 
-## 67. Important Constraints
+## 69. Important Constraints
 
 Application / DB Layerで保証する。
 
@@ -1072,7 +1128,7 @@ Only one canonical owner per managed field
 Secrets are not stored in plaintext
 ```
 
-## 68. Indexing Strategy
+## 70. Indexing Strategy
 
 ```text
 facts(entity_id, attribute)
@@ -1096,7 +1152,7 @@ actions(site_id, status)
 verification_requests(status, priority)
 ```
 
-## 69. Vector Columns
+## 71. Vector Columns
 
 pgvectorはOptional。
 
@@ -1112,7 +1168,7 @@ passages.embedding
 
 Core Applicationはpgvector無しでも起動可能にする。
 
-## 70. JSONB Usage
+## 72. JSONB Usage
 
 ```text
 source_items.raw_content
@@ -1125,13 +1181,13 @@ actions.payload
 
 主要検索条件をJSONBへ逃がしすぎない。
 
-## 71. Multi-tenancy
+## 73. Multi-tenancy
 
 主要テーブルにはsite_idまたはtenant_idを持たせる。
 
 Tenant間Knowledge混入を防ぐ。
 
-## 72. Auditability
+## 74. Auditability
 
 重要Mutation:
 
@@ -1146,7 +1202,7 @@ after
 
 を追跡可能にする。
 
-## 73. Phase 1 Minimum Tables
+## 75. Phase 1 Minimum Tables
 
 主経路（ヒアリング → Knowledge → 生成 → 配信 → 検証）に必要なもの。
 
@@ -1186,6 +1242,8 @@ site_policies
 capability_autonomy
 memories
 
+archetype_definitions
+site_archetypes
 llm_usage
 ```
 
@@ -1201,10 +1259,10 @@ llm_usage
   → 運用期（データ蓄積後）に有効化する機能のため
 
 新規:
-  llm_usage
+  archetype_definitions / site_archetypes / llm_usage
 ```
 
-## 74. 運用期 — Progressive Activation
+## 76. 運用期 — Progressive Activation
 
 段階的に有効化する機能とテーブル。
 受け皿は最初から存在させるが、実装の優先順位は主経路の後とする。
@@ -1233,7 +1291,7 @@ GSC接続後:
 各機能は自身の前提データの有無を判定し、自律的に有効化する。
 `mode` のような状態変数を持たない。
 
-## 75. Later Phase
+## 77. Later Phase
 
 ```text
 passages
@@ -1247,7 +1305,7 @@ visibility_checks
 deployment_settings
 ```
 
-## 76. PaaS Data Principle
+## 78. PaaS Data Principle
 
 必須Stateful Componentは原則PostgreSQLのみ。
 
@@ -1264,7 +1322,7 @@ Persistent Disk
 
 Object StorageもPhase 1ではOptional。
 
-## 77. Data Model Philosophy
+## 79. Data Model Philosophy
 
 このデータモデルの目的はKnowledge Graphを作ることではない。
 

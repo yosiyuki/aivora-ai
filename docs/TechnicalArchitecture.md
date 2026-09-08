@@ -446,7 +446,31 @@ HTTP Response
 
 サブドメイン発行・中央DNSを必要としない。
 
-## 23. Input Connectors
+## 23. Site Structure Derivation
+
+サイト構造は Goal から導出する。
+
+```text
+目的ヒアリング
+↓
+Archetype 判定（LLM）
+↓
+archetype_definitions（製品固定マスタ）
+↓
+├── page_structure   → 生成すべきページ
+└── required_slots   → Verification Request の生成元
+```
+
+LLM が行うのは Archetype の**判定のみ**。
+構造・スロット・優先度は製品が保持し、LLM に生成させない。
+
+```text
+一度発行した URL は不変
+```
+
+Archetype 追加時も既存 URL を変更しない。構造は足せるが動かさない。
+
+## 24. Input Connectors
 
 外部システムは**入力源**であり、書き戻し先ではない。
 
@@ -464,7 +488,7 @@ CMS as AI
 一方向（外部 → CMS as AI）のみとし、外部システムへの書き込みを行わない。
 これにより Field Ownership の衝突が構造的に発生しない。
 
-## 24. Planner
+## 25. Planner
 
 ```text
 Human Strategy
@@ -480,7 +504,7 @@ Actions
 
 長期Strategyは人間が握り、AIは短期Planningを担当。
 
-## 25. Feasibility Engine
+## 26. Feasibility Engine
 
 ```text
 Search Demand
@@ -492,7 +516,7 @@ Time Horizon
 
 等からGoal達成可能性を評価する。
 
-## 26. Policy Engine
+## 27. Policy Engine
 
 LLMの外側で実装。
 
@@ -517,7 +541,7 @@ DENY
 FREEZE
 ```
 
-## 27. Tool Runtime
+## 28. Tool Runtime
 
 ```text
 LLM
@@ -533,7 +557,7 @@ Audit Log
 
 DBや外部サービスをLLMから直接触らせない。
 
-## 28. Tool Categories
+## 29. Tool Categories
 
 ```text
 content.*
@@ -550,7 +574,7 @@ deploy.*
 verification.*
 ```
 
-## 29. Review System
+## 30. Review System
 
 **Phase 1では個別Actionごとの人間承認を行わない。**
 
@@ -570,7 +594,7 @@ Diff / Evidence / Reason
 
 実行結果はOperational Memoryへ保存する。
 
-## 30. Earned Autonomy
+## 31. Earned Autonomy
 
 Site × Capabilityで管理する。
 
@@ -590,7 +614,7 @@ Level 4 でも Campaign Rollback による回復可能性を維持できる。
 `capability_autonomy` は success / rejection / rollback を記録し、
 実績に基づく調整を可能にする。
 
-## 31. Aggregate Policy
+## 32. Aggregate Policy
 
 ```text
 Site-wide Change Rate
@@ -606,7 +630,7 @@ Link Change Count
 **個別承認を行わない設計では、Aggregate Policy と Emergency Stop が
 唯一の安全装置となる。既定値は保守的に設定する。**
 
-## 32. Emergency Stop & Campaign Rollback
+## 33. Emergency Stop & Campaign Rollback
 
 Trigger:
 
@@ -623,7 +647,7 @@ Freeze時はAction Toolを拒否。
 
 複数ActionをCampaignとして束ね、Campaign単位Rollbackを可能にする。
 
-## 33. Memory
+## 34. Memory
 
 Phase 1ではOperational Memory中心。
 
@@ -639,7 +663,7 @@ Approver
 
 Strategic Memoryは補助的に扱い、Evidence / Confidence / Decayを持たせる。
 
-## 34. Evaluation Architecture
+## 35. Evaluation Architecture
 
 Eval対象:
 
@@ -654,7 +678,7 @@ Suppression
 
 Model更新時はRegression Evalを実行する。
 
-## 35. Background Processing
+## 36. Background Processing
 
 リアルタイム処理に寄せすぎない。
 
@@ -673,7 +697,7 @@ Weekly Content Decay Analysis
 Hourly Verification Response Processing
 ```
 
-## 36. Model Routing
+## 37. Model Routing
 
 ```text
 Small Model
@@ -689,7 +713,7 @@ Strong Model
 Model Routing はコスト最適化の主要な手段である。
 `llm_usage` の operation_type 別集計を用いて配分を見直す。
 
-## 37. Cost Control
+## 38. Cost Control
 
 **生成量の主たる歯止めは LLM API のコストとする。**
 
@@ -727,7 +751,7 @@ budget_action = degrade（既定）
 **degrade しても Content Grounding Engine（§19）は省略しない。**
 文章品質は落としてよいが、根拠検証は落とさない。
 
-## 38. Search / Vector Strategy
+## 39. Search / Vector Strategy
 
 Embedding用途:
 
@@ -740,7 +764,7 @@ Truth判定をEmbeddingだけに依存しない。
 
 pgvectorはOptionalにする。
 
-## 39. Deployment Principle
+## 40. Deployment Principle
 
 > **PaaS-first, Docker-portable.**
 
@@ -754,7 +778,7 @@ Core must run with:
 
 Workers / Schedulersは同じApplication Imageを使う。
 
-## 40. PaaS Target
+## 41. PaaS Target
 
 グローバルで一般的なPaaSを想定する。
 
@@ -773,7 +797,7 @@ Fallback:
 Generic Docker
 ```
 
-## 41. Minimal PaaS Shape
+## 42. Minimal PaaS Shape
 
 ```text
 GitHub
@@ -800,7 +824,7 @@ External APIs
 単一ドメインで配信する
 ```
 
-## 42. Stateful Components
+## 43. Stateful Components
 
 **PostgreSQLを唯一の必須Stateful Componentにする。**
 
@@ -816,7 +840,7 @@ Persistent Disk
 Kubernetes
 ```
 
-## 43. Job Queue
+## 44. Job Queue
 
 Redisを必須にしない。
 
@@ -828,7 +852,7 @@ Solid Queue
 
 等、PostgreSQLだけで完結する方式を優先する。
 
-## 44. Filesystem
+## 45. Filesystem
 
 PaaSのLocal Filesystemを永続ストレージとして信用しない。
 
@@ -847,7 +871,7 @@ Object Storage
 
 をOptional追加。
 
-## 45. One Image, Multiple Processes
+## 46. One Image, Multiple Processes
 
 同一Docker Imageを使う。
 
@@ -870,7 +894,7 @@ Scheduler:
 
 PaaS固有コードをApplicationへ埋め込まない。
 
-## 46. Environment Configuration
+## 47. Environment Configuration
 
 Deploy直後は最低限:
 
@@ -884,7 +908,7 @@ APP_SECRET
 
 WordPress / GSC / GA4 / SlackはUIから接続可能にする。
 
-## 47. Setup UX
+## 48. Setup UX
 
 **人間の操作を必須とするのは初期設定のみ。**
 
@@ -929,7 +953,7 @@ Goal の数値化（metric / target_value / target_date）はシステム側が�
 入力源なし → ヒアリング内容のみで記事を1本生成
 ```
 
-## 48. Recommended Phase 1 Stack
+## 49. Recommended Phase 1 Stack
 
 一例:
 
@@ -946,7 +970,7 @@ Slack API
 Docker
 ```
 
-## 49. Application Shape
+## 50. Application Shape
 
 初期はMicroservices化しない。
 
@@ -964,7 +988,7 @@ Policy
 Evaluation
 ```
 
-## 50. Observability
+## 51. Observability
 
 最低限:
 
@@ -979,7 +1003,7 @@ Rollback events
 Connector health
 ```
 
-## 51. Security
+## 52. Security
 
 ```text
 Tenant isolation
@@ -991,7 +1015,7 @@ Rate limits
 Prompt injection isolation
 ```
 
-## 52. Final Architecture Principle
+## 53. Final Architecture Principle
 
 > **Brainは高度でも、Deploymentは普通のWebアプリであるべき。**
 
