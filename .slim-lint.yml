@@ -1,0 +1,30 @@
+# https://github.com/sds/slim-lint
+linters:
+  LineLength:
+    max: 120
+  RuboCop:
+    enabled: true
+    # Layout cops are meaningless on the Ruby extracted from a template.
+    ignored_cops:
+      - Layout/ArgumentAlignment
+      - Layout/ArrayAlignment
+      - Layout/BlockAlignment
+      - Layout/ClosingParenthesisIndentation
+      - Layout/EndAlignment
+      - Layout/FirstArgumentIndentation
+      - Layout/FirstArrayElementIndentation
+      - Layout/FirstHashElementIndentation
+      - Layout/HashAlignment
+      - Layout/IndentationConsistency
+      - Layout/IndentationWidth
+      - Layout/InitialIndentation
+      - Layout/LineLength
+      - Layout/MultilineArrayBraceLayout
+      - Layout/MultilineHashBraceLayout
+      - Layout/MultilineMethodCallBraceLayout
+      - Layout/MultilineMethodCallIndentation
+      - Layout/MultilineOperationIndentation
+      - Layout/TrailingEmptyLines
+      - Layout/TrailingWhitespace
+      - Lint/Void
+      - Style/FrozenStringLiteralComment

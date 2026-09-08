@@ -1,0 +1,11 @@
+#!/bin/bash -e
+
+# The web role prepares the database on boot so a plain `docker run` works.
+# Other roles assume the schema exists. Prefer `bin/process release` as a
+# pre-deploy step where the PaaS offers one; db:prepare is idempotent and
+# migrations take a PostgreSQL advisory lock, so concurrent boots are safe.
+if [ "${1:-}" == "bin/process" ] && [ "${2:-web}" == "web" ]; then
+  bin/rails db:prepare
+fi
+
+exec "${@}"
