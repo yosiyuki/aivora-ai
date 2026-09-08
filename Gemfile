@@ -48,4 +48,9 @@ end
 
 gem "solid_queue", "~> 1.7"
 
+# json 3.x dropped the positional options hash that ActiveSupport 8.1's
+# JSON.decode still passes, which breaks every serialized column (Solid Queue
+# process registration included). Lift this once Rails accepts json 3.
+gem "json", "< 3"
+
 gem "rspec-rails", "~> 8.0", groups: [ :development, :test ]
