@@ -90,16 +90,36 @@ table as **control data, not telemetry**.
 
 ## Onboarding shape
 
-The only fixed question is **Q1: the user's role** (`README.md` §27). Everything after it adapts —
-vocabulary, depth, whether policy editing is exposed at all (expert / business / individual).
+Setup is the only interaction the product requires of a human, and **every question in it is free text
+with worked examples — never multiple choice** (`README.md` §27).
 
-- **Only the goal is mandatory; Facts and Knowledge are optional.**
-- Goal quantification (`metric` / `target_value` / `target_date`) is done by the system, not the user.
+Offering options makes users abandon their own vocabulary for yours, and the information dies there.
+A checkbox labelled "来てほしい" replaces "常連さんが増えなくて、新しい人にも来てほしい。でも観光客ばかり
+だと雰囲気が変わってしまう". Non-experts lack the jargon, not the information. Free-text answers also
+become Experiential Claim material directly, so the interview collects Knowledge while it configures the
+site — a checkbox answer can never appear in an article, but the user's own words can.
+
+- Attach **three examples of differing length** to each question — as a guide to granularity, not a menu.
+- **Infer the archetype; never ask the user to pick one.** Users state purpose through verbs ("来てほしい",
+  "残したい", "見てもらいたい"). Ask one clarifying free-text question only when inference fails — archetypes
+  compose later and URLs never move, so a perfect first guess is not required.
+- **Follow the user's energy first.** Quote their words back ("豆へのこだわり、もう少し聞かせてください")
+  before asking administrative things like opening hours; the reverse order loses people.
+- **Only the goal is mandatory; Facts and Knowledge are optional.** Goal quantification (`metric` /
+  `target_value` / `target_date`) is done by the system.
+- **Ask only for `minimum` slots** — what the first article needs. `standard` and `enriched` become
+  Verification Requests against the blanks in the published page. Show progress without naming slots
+  ("あと少しで最初のページが作れます", never "3/6 充足"), and cap the interview around 10 questions.
+- **Route each utterance by kind** (§27.6): intent → `goals` (never Knowledge), fact → Fact, experience →
+  Experience. The transcript itself is never stored as Knowledge — intent and fact must not mix.
+- Interview answers are external input like any other: the Extraction Agent processes them, with no
+  exception to Agent Isolation.
 - AI may propose and infer policies, but **Editorial Policy prohibitions are product-fixed and can only be
   tightened, never loosened by the AI** (§30) — an LLM must not author its own constraints.
-- Conversation logs never become Evidence or Knowledge (intent ≠ fact).
+- Role changes vocabulary, question count, and depth — **it never changes which slots are required**. A
+  shop's location is needed whoever runs it.
 - First run: **input source present → start by ingesting; absent → generate one article from the interview
-  alone**, then grow Knowledge by having the user fill the blanks via Verification Requests.
+  alone**.
 
 ## Site structure is derived, never chosen
 

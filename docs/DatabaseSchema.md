@@ -1006,9 +1006,19 @@ Archetype ごとの構造定義。**製品が保持する固定マスタ。**
 archetype_definitions
 - archetype           # business / media / knowledge_base / portfolio
 - page_structure      # 生成すべきページ種別
-- required_slots      # 必須Knowledgeスロット
+- required_slots      # 必須Knowledgeスロット（充足レベル付き）
 - priority_weights    # スロットの優先度
 ```
+
+`required_slots` は充足レベルを持つ。
+
+```text
+minimum    最初の1本に必要   → 初期設定のヒアリングで聞く
+standard   サイトとして必要   → Verification Request
+enriched   あると良い        → Verification Request
+```
+
+初期設定では minimum のみを充足させ、残りは非同期に収集する。
 
 例:
 
