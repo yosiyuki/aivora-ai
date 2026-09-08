@@ -1,0 +1,15 @@
+# Used by `bin/process scheduler`: dispatchers + recurring tasks, no workers.
+# Workers run in `bin/process worker` (config/queue.yml with --skip_recurring).
+default: &default
+  dispatchers:
+    - polling_interval: 1
+      batch_size: 500
+
+development:
+  <<: *default
+
+test:
+  <<: *default
+
+production:
+  <<: *default

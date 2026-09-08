@@ -45,3 +45,7 @@ group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
 end
+
+gem "solid_queue", "~> 1.7"
+
+gem "rspec-rails", "~> 8.0", groups: [ :development, :test ]

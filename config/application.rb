@@ -38,5 +38,15 @@ module AivoraAi
 
     # Don't generate system test files.
     config.generators.system_tests = nil
+
+    # Background work goes through Solid Queue on the primary PostgreSQL database.
+    # No Redis. Test overrides this with the :test adapter.
+    config.active_job.queue_adapter = :solid_queue
+
+    # Which process role this instance is serving (web | public). See AppRole.
+    config.x.app_role = ENV.fetch("APP_ROLE", "web")
+
+    # LLM API key is read at boot but not required to boot.
+    config.x.llm.api_key = ENV["LLM_API_KEY"]
   end
 end
