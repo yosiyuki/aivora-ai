@@ -26,3 +26,6 @@
 # Ignore key files for decrypting credentials and more.
 /config/*.key
 
+
+# The example is documentation, not a secret.
+!/.env.example
