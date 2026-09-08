@@ -60,6 +60,21 @@ pgvector but nothing enables it — PostgreSQL alone is the requirement.
   Rails credentials, no `RAILS_MASTER_KEY`. `LLM_API_KEY` is read at boot but not required to boot.
 - Keep PaaS-specific files (`render.yaml`, `fly.toml`) out of the repository.
 
+## Auth and first-run setup
+
+Authentication is Rails 8's built-in generator output (`has_secure_password`, a `sessions` table, the
+`Authentication` concern), not Devise. `ApplicationController` includes it, so **every controller requires
+login by default**; public-facing controllers must opt out with `allow_unauthenticated_access`.
+
+- `/setup` is the only way to create the administrator: two steps (admin, then site), reachable only
+  while no user or no site exists, 404 afterwards. There is no seed and no CLI for this.
+- One user, one `Site` row. `Site.current` returns it; `Current.site` is set for every request.
+- No password-reset email — SMTP is not a boot requirement. Recovery is
+  `bin/rails users:reset_password[email]`, which prints a new password and ends existing sessions.
+- Login, logout and setup routes live in `config/routes/admin.rb`, so the public role has none of them.
+- UI strings are Japanese (`config/locales/ja.yml`, default locale `ja`, `rails-i18n` for validation
+  messages).
+
 ## What this product is
 
 **CMS as AI is itself the output CMS** — it generates pages and serves them (`README.md` §1, §3;
