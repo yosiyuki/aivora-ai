@@ -77,6 +77,7 @@ GEM
       uri (>= 0.13.1)
     ast (2.4.3)
     base64 (0.3.0)
+    bcrypt (3.1.22)
     bigdecimal (4.1.2)
     bindex (0.8.1)
     bootsnap (1.26.0)
@@ -214,6 +215,9 @@ GEM
     rails-html-sanitizer (1.7.1)
       loofah (~> 2.25, >= 2.25.2)
       nokogiri (>= 1.15.7, != 1.16.7, != 1.16.6, != 1.16.5, != 1.16.4, != 1.16.3, != 1.16.2, != 1.16.1, != 1.16.0.rc1, != 1.16.0)
+    rails-i18n (8.1.0)
+      i18n (>= 0.7, < 2)
+      railties (>= 8.0.0, < 9)
     railties (8.1.3.1)
       actionpack (= 8.1.3.1)
       activesupport (= 8.1.3.1)
@@ -348,6 +352,7 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
+  bcrypt (~> 3.1.7)
   bootsnap
   brakeman
   bundler-audit
@@ -358,6 +363,7 @@ DEPENDENCIES
   propshaft
   puma (>= 5.0)
   rails (~> 8.1.3, >= 8.1.3.1)
+  rails-i18n (~> 8.0)
   rspec-rails (~> 8.0)
   rubocop-rails-omakase
   slim-rails (~> 4.0)
@@ -384,6 +390,7 @@ CHECKSUMS
   activesupport (8.1.3.1) sha256=85458765f25ea48b9019c46b6bb3fa5683197bf4280d9f06710a6e8d7a831376
   ast (2.4.3) sha256=954615157c1d6a382bc27d690d973195e79db7f55e9765ac7c481c60bdb4d383
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
+  bcrypt (3.1.22) sha256=1f0072e88c2d705d94aff7f2c5cb02eb3f1ec4b8368671e19112527489f29032
   bigdecimal (4.1.2) sha256=53d217666027eab4280346fba98e7d5b66baaae1b9c3c1c0ffe89d48188a3fbd
   bindex (0.8.1) sha256=7b1ecc9dc539ed8bccfc8cb4d2732046227b09d6f37582ff12e50a5047ceb17e
   bootsnap (1.26.0) sha256=ca96237015e6cd74a02963d5821cf00ac5ea134653b323e8cd6d702a7718bf1b
@@ -452,6 +459,7 @@ CHECKSUMS
   rails (8.1.3.1) sha256=ccd11a36bfc171bf9c66d585d14c0ece91c0c9dde840aae60c0118d6f5c9c52a
   rails-dom-testing (2.3.0) sha256=8acc7953a7b911ca44588bf08737bc16719f431a1cc3091a292bca7317925c1d
   rails-html-sanitizer (1.7.1) sha256=e797a7c9b01e567307e317c576b49ab4168017e63eea4dba9ce3cb587e2f22c2
+  rails-i18n (8.1.0) sha256=52d5fd6c0abef28d84223cc05647f6ae0fd552637a1ede92deee9545755b6cf3
   railties (8.1.3.1) sha256=2388a232579a00cefea4487de66c8553c3408c1300abdc6cf1799d86ffb04487
   rainbow (3.1.1) sha256=039491aa3a89f42efa1d6dec2fc4e62ede96eb6acd95e52f1ad581182b79bc6a
   rake (13.4.2) sha256=cb825b2bd5f1f8e91ca37bddb4b9aaf345551b4731da62949be002fa89283701

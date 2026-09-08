@@ -1,0 +1,13 @@
+- content_for :title, t("sessions.title")
+section.card
+  h1 = t("sessions.title")
+  = form_with url: session_path do |form|
+    .field
+      = form.label :email_address, t("attributes.email_address")
+      = form.email_field :email_address, required: true, autofocus: true,
+        autocomplete: "username", value: params[:email_address]
+    .field
+      = form.label :password, t("attributes.password")
+      = form.password_field :password, required: true, autocomplete: "current-password", maxlength: 72
+    .actions
+      = form.submit t("sessions.submit")
