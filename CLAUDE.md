@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository state
 
-Design-stage repository — **no application code, build system, or tests exist yet**. It currently contains
-only the specification set (all at Version 2.0):
+A Rails 8.1 application (Ruby 4.0, PostgreSQL 18, Solid Queue) whose specification set is checked in
+alongside it (all at Version 2.0):
 
 - `README.md` — product requirements for Phase 1 (AI Publishing System)
 - `docs/TechnicalArchitecture.md` — 53 sections: components, agent isolation, policy/tool runtime, cost
@@ -15,12 +15,46 @@ only the specification set (all at Version 2.0):
 These three documents are the source of truth. When implementing anything, read the relevant section
 first — table names, column names, engine names, and decision enums are already fixed there.
 
-Planned Phase 1 stack (`TechnicalArchitecture.md` §49): Rails, PostgreSQL, Solid Queue, optional pgvector,
-LLM APIs, Docker. Application shape is a **modular monolith** (§50), not microservices — keep bounded
-contexts (Ingestion, Knowledge, Search Intelligence, Content, Automation, Policy, Evaluation) separated
-inside one app.
+Application shape is a **modular monolith** (`TechnicalArchitecture.md` §50), not microservices — keep
+bounded contexts (Ingestion, Knowledge, Search Intelligence, Content, Automation, Policy, Evaluation)
+separated inside one app.
 
 Docs are written in Japanese; match that language when editing them.
+
+## Commands
+
+```bash
+bin/setup                                  # first run: bundle, db:prepare
+bin/rails server                           # admin/review UI + public pages (APP_ROLE=web)
+APP_ROLE=public bin/rails server           # public pages only
+bin/jobs                                   # worker + scheduler in one process (fine for development)
+bundle exec rspec spec/path/to_spec.rb:LINE  # run only what you changed; CI runs the full suite
+bin/rubocop                                # lint (rubocop-rails-omakase)
+bin/brakeman --no-pager                    # security scan
+docker build -t aivora-ai .                # the image is a deliverable; keep it building
+docker compose up --build                  # PaaS shape locally: db + web + public + worker + scheduler
+```
+
+Local PostgreSQL: `docker compose up db` starts PostgreSQL 18 on port 5433; point at it with
+`PGHOST=localhost PGPORT=5433 PGUSER=postgres PGPASSWORD=postgres`. The `postgres` service bundles
+pgvector but nothing enables it — PostgreSQL alone is the requirement.
+
+## Deployment shape (load-bearing)
+
+`PaaS-first, Docker-portable` is an architecture requirement, not an ops detail (`TechnicalArchitecture.md`
+§40–47). It decides what the app may depend on:
+
+- **PostgreSQL is the only stateful dependency.** No Redis, Elasticsearch, Neo4j, Kafka, vector DB,
+  persistent disk. Solid Queue tables live in the primary database — there is deliberately no separate
+  `queue` database and no `connects_to`. `spec/config/deployment_constraints_spec.rb` fails if any of
+  this regresses.
+- **One image, five commands.** `bin/process {web|public|worker|scheduler|release}` is the only
+  entrypoint; `Procfile` maps them for PaaS. `web` and `public` are the same Rails server with different
+  route sets (`config/routes/admin.rb` is drawn only when `AppRole.web?`). On a PaaS that cannot split
+  traffic, run `web` alone — it serves both.
+- **Three environment variables boot production:** `DATABASE_URL`, `APP_SECRET`, `LLM_API_KEY`. No
+  Rails credentials, no `RAILS_MASTER_KEY`. `LLM_API_KEY` is read at boot but not required to boot.
+- Keep PaaS-specific files (`render.yaml`, `fly.toml`) out of the repository.
 
 ## What this product is
 
@@ -174,9 +208,3 @@ tables (§76) have their schema defined but are enabled later.
 
 Work is background-first, not realtime (`TechnicalArchitecture.md` §36). Model routing (§37): small for
 classification/extraction, mid for entity resolution/summarization, strong for planning and drafting.
-
-## When code lands
-
-Once the Rails app exists, update this file with real build/test/lint commands. Per the user's global
-instructions: run only the specs related to a change locally (`bundle exec rspec path/to/spec.rb:LINE`),
-never the full suite — CI covers that — and use the `gh` CLI for all GitHub operations.
