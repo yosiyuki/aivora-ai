@@ -1,0 +1,53 @@
+ja:
+  attributes:
+    name: お名前
+    email_address: メールアドレス
+    password: パスワード
+    password_confirmation: パスワード（確認）
+    site_name: サイト名
+    domain: ドメイン
+  activerecord:
+    attributes:
+      user:
+        name: お名前
+        email_address: メールアドレス
+        password: パスワード
+        password_confirmation: パスワード（確認）
+      site:
+        name: サイト名
+        domain: ドメイン
+        primary_language: 主要言語
+        timezone: タイムゾーン
+        status: 状態
+    errors:
+      models:
+        site:
+          attributes:
+            domain:
+              invalid_hostname: "はドメイン名として正しくありません（例: example.com）"
+            base:
+              only_one_site: このデプロイにはサイトを 1 つしか登録できません
+  sessions:
+    title: ログイン
+    submit: ログイン
+    sign_out: ログアウト
+    invalid: メールアドレスかパスワードが違います
+    rate_limited: しばらく待ってからもう一度お試しください
+    signed_out: ログアウトしました
+  setup:
+    step: "ステップ %{current} / %{total}"
+    completed: 初期設定が完了しました
+    admin:
+      title: 管理者を作成
+      lead: このサイトを管理する、あなたのアカウントを作ります。
+      submit: 次へ
+    site:
+      title: サイトの情報
+      lead: 公開するサイトの名前とドメインを教えてください。あとから変えられます。
+      name_hint: 訪問者に見える名前です。
+      domain_hint: URL を貼り付けても構いません。ドメイン部分だけを使います。
+      submit: 設定を完了する
+  admin:
+    dashboard:
+      title: ダッシュボード
+      next_step: 初期設定は完了しています。次はヒアリングです（近日追加）。

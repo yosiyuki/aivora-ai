@@ -1,0 +1,17 @@
+- content_for :title, t("setup.site.title")
+section.card
+  p.step = t("setup.step", current: 2, total: 2)
+  h1 = t("setup.site.title")
+  p.lead = t("setup.site.lead")
+  = form_with model: @site, url: setup_site_path do |form|
+    = render "shared/errors", record: @site
+    .field
+      = form.label :name, t("attributes.site_name")
+      = form.text_field :name, required: true, autofocus: true
+      small = t("setup.site.name_hint")
+    .field
+      = form.label :domain, t("attributes.domain")
+      = form.text_field :domain, required: true, placeholder: "example.com", inputmode: "url"
+      small = t("setup.site.domain_hint")
+    .actions
+      = form.submit t("setup.site.submit")

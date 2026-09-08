@@ -1,0 +1,9 @@
+- content_for :title, t("admin.dashboard.title")
+section.card
+  h1 = t("admin.dashboard.title")
+  dl
+    dt = t("attributes.site_name")
+    dd = @site.name
+    dt = t("attributes.domain")
+    dd = @site.domain
+  p.lead = t("admin.dashboard.next_step")

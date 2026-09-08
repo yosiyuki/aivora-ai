@@ -23,5 +23,14 @@ RSpec.describe "Health checks per process role", type: :request do
         expect(response).to have_http_status(:not_found)
       end
     end
+
+    it "has no admin, login or setup routes at all" do
+      with_app_role("public") do
+        %w[/admin /session/new /setup /setup/site].each do |path|
+          get path
+          expect(response).to have_http_status(:not_found), path
+        end
+      end
+    end
   end
 end
