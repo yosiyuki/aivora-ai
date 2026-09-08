@@ -32,6 +32,7 @@ bin/rails server                           # admin/review UI + public pages (APP
 APP_ROLE=public bin/rails server           # public pages only
 bin/jobs                                   # worker + scheduler in one process (fine for development)
 bundle exec rspec spec/path/to_spec.rb:LINE  # run only what you changed; CI runs the full suite
+bundle exec rspec --tag ~slow              # everything except system specs
 bin/rubocop                                # lint (rubocop-rails-omakase)
 bundle exec slim-lint app/views            # lint templates (views are Slim, never ERB)
 bin/brakeman --no-pager                    # security scan
@@ -74,6 +75,8 @@ login by default**; public-facing controllers must opt out with `allow_unauthent
 - Login, logout and setup routes live in `config/routes/admin.rb`, so the public role has none of them.
 - UI strings are Japanese (`config/locales/ja.yml`, default locale `ja`, `rails-i18n` for validation
   messages).
+- System specs (`spec/system/`) run on Capybara `rack_test` — no browser. Tag an example `js: true` only
+  when it really needs one, and prefer request specs for anything that is not a user journey.
 
 ## What this product is
 

@@ -60,3 +60,5 @@ gem "slim-rails", "~> 4.0"
 gem "slim_lint", "~> 0.37", groups: [ :development, :test ], require: false
 
 gem "rails-i18n", "~> 8.0"
+
+gem "capybara", "~> 3.40", group: :test
