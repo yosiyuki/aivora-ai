@@ -38,6 +38,7 @@ module AivoraAi
 
     # Don't generate system test files.
     config.generators.system_tests = nil
+    config.generators.template_engine = :slim
 
     # Background work goes through Solid Queue on the primary PostgreSQL database.
     # No Redis. Test overrides this with the :test adapter.

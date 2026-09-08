@@ -54,3 +54,7 @@ gem "solid_queue", "~> 1.7"
 gem "json", "< 3"
 
 gem "rspec-rails", "~> 8.0", groups: [ :development, :test ]
+
+gem "slim-rails", "~> 4.0"
+
+gem "slim_lint", "~> 0.37", groups: [ :development, :test ], require: false

@@ -21,6 +21,9 @@ separated inside one app.
 
 Docs are written in Japanese; match that language when editing them.
 
+Views are **Slim** (`slim-rails`); generators are configured for it and a view spec fails on any
+`.html.erb`. `.text.erb` (mailer text) and `.json.erb` are the only ERB allowed.
+
 ## Commands
 
 ```bash
@@ -30,6 +33,7 @@ APP_ROLE=public bin/rails server           # public pages only
 bin/jobs                                   # worker + scheduler in one process (fine for development)
 bundle exec rspec spec/path/to_spec.rb:LINE  # run only what you changed; CI runs the full suite
 bin/rubocop                                # lint (rubocop-rails-omakase)
+bundle exec slim-lint app/views            # lint templates (views are Slim, never ERB)
 bin/brakeman --no-pager                    # security scan
 docker build -t aivora-ai .                # the image is a deliverable; keep it building
 docker compose up --build                  # PaaS shape locally: db + web + public + worker + scheduler
