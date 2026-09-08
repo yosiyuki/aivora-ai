@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Single entrypoint for every process role. Same image, different command
+# (Technical Architecture §46). Keep PaaS-specific logic out of here.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+case "${1:-web}" in
+  web)       export APP_ROLE=web;    exec bin/thrust bin/rails server ;;
+  public)    export APP_ROLE=public; exec bin/thrust bin/rails server ;;
+  worker)    exec bin/jobs start --skip_recurring ;;
+  scheduler) exec bin/jobs start --config_file config/queue_scheduler.yml ;;
+  release)   exec bin/rails db:prepare ;;
+  *)
+    echo "usage: bin/process {web|public|worker|scheduler|release}" >&2
+    exit 64 ;;
+esac
