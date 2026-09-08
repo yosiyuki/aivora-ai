@@ -2,7 +2,11 @@ require "active_support/core_ext/integer/time"
 
 Rails.application.configure do
   # Secrets come from the environment only. No Rails credentials, no RAILS_MASTER_KEY.
-  config.secret_key_base = ENV.fetch("APP_SECRET")
+  # Rails passes SECRET_KEY_BASE_DUMMY=1 during `assets:precompile` in the Docker
+  # build, where no real secret exists; at runtime APP_SECRET is mandatory.
+  unless ENV["SECRET_KEY_BASE_DUMMY"]
+    config.secret_key_base = ENV.fetch("APP_SECRET") { raise KeyError, "APP_SECRET is required (see .env.example)" }
+  end
   config.require_master_key = false
 
   # Settings specified here will take precedence over those in config/application.rb.
