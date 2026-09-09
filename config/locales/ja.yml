@@ -35,6 +35,10 @@ ja:
           attributes:
             examples:
               three_examples: は 3 つ必要です
+        fact:
+          attributes:
+            status:
+              needs_provenance: を accepted にするには根拠（evidence）が必要です
   sessions:
     title: ログイン
     submit: ログイン

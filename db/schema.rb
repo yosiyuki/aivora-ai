@@ -10,9 +10,120 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_10_020100) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_10_030000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "claims", force: :cascade do |t|
+    t.string "claim_kind", null: false
+    t.float "confidence", default: 0.0, null: false
+    t.datetime "created_at", null: false
+    t.bigint "entity_id"
+    t.bigint "site_id", null: false
+    t.text "statement", null: false
+    t.string "status", default: "candidate", null: false
+    t.datetime "updated_at", null: false
+    t.index ["entity_id"], name: "index_claims_on_entity_id"
+    t.index ["site_id"], name: "index_claims_on_site_id"
+  end
+
+  create_table "entities", force: :cascade do |t|
+    t.string "canonical_name", null: false
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "entity_type", null: false
+    t.jsonb "external_ids", default: {}, null: false
+    t.bigint "site_id", null: false
+    t.string "slug", null: false
+    t.string "status", default: "active", null: false
+    t.datetime "updated_at", null: false
+    t.index ["site_id", "slug"], name: "index_entities_on_site_id_and_slug", unique: true
+    t.index ["site_id"], name: "index_entities_on_site_id"
+  end
+
+  create_table "entity_aliases", force: :cascade do |t|
+    t.string "alias", null: false
+    t.float "confidence"
+    t.datetime "created_at", null: false
+    t.bigint "entity_id", null: false
+    t.string "language"
+    t.string "source"
+    t.index ["entity_id", "alias"], name: "index_entity_aliases_on_entity_id_and_alias", unique: true
+    t.index ["entity_id"], name: "index_entity_aliases_on_entity_id"
+  end
+
+  create_table "entity_candidates", force: :cascade do |t|
+    t.string "candidate_name", null: false
+    t.float "confidence", default: 0.0, null: false
+    t.datetime "created_at", null: false
+    t.string "entity_type", null: false
+    t.bigint "proposed_entity_id"
+    t.bigint "site_id", null: false
+    t.bigint "source_item_id"
+    t.string "status", default: "pending", null: false
+    t.index ["proposed_entity_id"], name: "index_entity_candidates_on_proposed_entity_id"
+    t.index ["site_id"], name: "index_entity_candidates_on_site_id"
+    t.index ["source_item_id"], name: "index_entity_candidates_on_source_item_id"
+  end
+
+  create_table "evidence", force: :cascade do |t|
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.string "evidence_type", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "observed_at", null: false
+    t.bigint "site_id", null: false
+    t.bigint "source_item_id", null: false
+    t.string "trust_level", null: false
+    t.index ["site_id"], name: "index_evidence_on_site_id"
+    t.index ["source_item_id"], name: "index_evidence_on_source_item_id"
+  end
+
+  create_table "evidence_links", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "evidence_id", null: false
+    t.bigint "knowledge_id", null: false
+    t.string "knowledge_type", null: false
+    t.string "relation_type", default: "supports", null: false
+    t.index ["evidence_id", "knowledge_type", "knowledge_id"], name: "index_evidence_links_unique", unique: true
+    t.index ["evidence_id"], name: "index_evidence_links_on_evidence_id"
+    t.index ["knowledge_type", "knowledge_id"], name: "index_evidence_links_on_knowledge_type_and_knowledge_id"
+  end
+
+  create_table "experiences", force: :cascade do |t|
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.bigint "entity_id"
+    t.datetime "experienced_at"
+    t.string "location"
+    t.jsonb "metadata", default: {}, null: false
+    t.string "person_id"
+    t.bigint "site_id", null: false
+    t.text "summary", null: false
+    t.index ["entity_id"], name: "index_experiences_on_entity_id"
+    t.index ["site_id"], name: "index_experiences_on_site_id"
+  end
+
+  create_table "facts", force: :cascade do |t|
+    t.string "attribute_key", null: false
+    t.float "confidence", default: 0.0, null: false
+    t.datetime "created_at", null: false
+    t.bigint "entity_id", null: false
+    t.datetime "last_verified_at"
+    t.string "risk_level", default: "medium", null: false
+    t.bigint "site_id", null: false
+    t.string "status", default: "candidate", null: false
+    t.string "unit"
+    t.datetime "updated_at", null: false
+    t.datetime "valid_from"
+    t.datetime "valid_until"
+    t.jsonb "value_json", null: false
+    t.index ["entity_id", "attribute_key"], name: "index_facts_on_entity_id_and_attribute_key"
+    t.index ["entity_id"], name: "index_facts_on_entity_id"
+    t.index ["last_verified_at"], name: "index_facts_on_last_verified_at"
+    t.index ["site_id", "status"], name: "index_facts_on_site_id_and_status"
+    t.index ["site_id"], name: "index_facts_on_site_id"
+  end
 
   create_table "interview_turns", force: :cascade do |t|
     t.text "answer_text"
@@ -42,6 +153,44 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_020100) do
     t.string "status", default: "in_progress", null: false
     t.datetime "updated_at", null: false
     t.index ["site_id"], name: "index_interviews_on_site_id"
+  end
+
+  create_table "knowledge_versions", force: :cascade do |t|
+    t.string "change_reason"
+    t.bigint "changed_by_id"
+    t.string "changed_by_type"
+    t.datetime "created_at", null: false
+    t.bigint "knowledge_id", null: false
+    t.string "knowledge_type", null: false
+    t.jsonb "snapshot", null: false
+    t.integer "version", null: false
+    t.index ["knowledge_type", "knowledge_id", "version"], name: "idx_on_knowledge_type_knowledge_id_version_47208a0a92", unique: true
+  end
+
+  create_table "problems", force: :cascade do |t|
+    t.string "audience_segment"
+    t.float "confidence", default: 0.0, null: false
+    t.datetime "created_at", null: false
+    t.bigint "entity_id"
+    t.string "severity"
+    t.bigint "site_id", null: false
+    t.text "text", null: false
+    t.index ["entity_id"], name: "index_problems_on_entity_id"
+    t.index ["site_id"], name: "index_problems_on_site_id"
+  end
+
+  create_table "questions", force: :cascade do |t|
+    t.string "audience_segment"
+    t.datetime "created_at", null: false
+    t.bigint "entity_id"
+    t.datetime "first_seen_at", null: false
+    t.integer "frequency", default: 1, null: false
+    t.string "language"
+    t.datetime "last_seen_at", null: false
+    t.bigint "site_id", null: false
+    t.text "text", null: false
+    t.index ["entity_id"], name: "index_questions_on_entity_id"
+    t.index ["site_id"], name: "index_questions_on_site_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -265,9 +414,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_020100) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "claims", "entities"
+  add_foreign_key "claims", "sites"
+  add_foreign_key "entities", "sites"
+  add_foreign_key "entity_aliases", "entities"
+  add_foreign_key "entity_candidates", "entities", column: "proposed_entity_id"
+  add_foreign_key "entity_candidates", "sites"
+  add_foreign_key "entity_candidates", "source_items"
+  add_foreign_key "evidence", "sites"
+  add_foreign_key "evidence", "source_items"
+  add_foreign_key "evidence_links", "evidence"
+  add_foreign_key "experiences", "entities"
+  add_foreign_key "experiences", "sites"
+  add_foreign_key "facts", "entities"
+  add_foreign_key "facts", "sites"
   add_foreign_key "interview_turns", "interviews"
   add_foreign_key "interview_turns", "source_items"
   add_foreign_key "interviews", "sites"
+  add_foreign_key "problems", "entities"
+  add_foreign_key "problems", "sites"
+  add_foreign_key "questions", "entities"
+  add_foreign_key "questions", "sites"
   add_foreign_key "sessions", "users"
   add_foreign_key "site_archetypes", "sites"
   add_foreign_key "solid_queue_batch_executions", "solid_queue_batches", column: "batch_id", on_delete: :cascade
