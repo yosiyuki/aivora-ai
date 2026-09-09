@@ -4,6 +4,8 @@ require "rails_helper"
 # that the head still carries what every page depends on.
 RSpec.describe "layouts/application", type: :view do
   it "renders from Slim with the CSRF, CSP and importmap tags" do
+    # helper_method :authenticated? lives on the controller and is not exposed to view specs
+    view.extend(Module.new { def authenticated? = false })
     view.content_for(:title, "Probe")
     render template: "layouts/application"
 

@@ -21,6 +21,7 @@ Cost is tracked and bounded
 ## 2. Core Domains
 
 ```text
+Users
 Sites
 Sources
 Evidence
@@ -54,6 +55,33 @@ sites
 
 Phase 1 は 1 deployment = 1 customer = 1 site とする。
 `site_id` は将来の拡張のため全テーブルで維持する。
+
+### 3.1 users / sessions（v2.0 実装時に追加）
+
+デプロイの管理者。Phase 1 は 1 deployment = 1 customer なので、ロールも `accounts` も持たず、
+`site_id` も持たない（users はサイトの所属物ではなく、デプロイの所有者）。
+
+```text
+users
+- id
+- email_address      # unique。正規化して小文字で保存
+- password_digest    # has_secure_password（bcrypt）
+- name
+- created_at
+- updated_at
+
+sessions
+- id
+- user_id
+- ip_address
+- user_agent
+- created_at
+- updated_at
+```
+
+`review_tasks.assigned_to`、`memories` の Approver、`verification_requests.assigned_to` は
+`users.id` を参照する。パスワードリセットは SMTP を要件にしないため画面を持たず、
+`bin/rails users:reset_password[email]` で行う。
 
 ## 4. sources
 

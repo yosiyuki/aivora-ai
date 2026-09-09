@@ -1,0 +1,21 @@
+- content_for :title, t("setup.admin.title")
+section.card
+  p.step = t("setup.step", current: 1, total: 2)
+  h1 = t("setup.admin.title")
+  p.lead = t("setup.admin.lead")
+  = form_with model: @user, url: setup_path do |form|
+    = render "shared/errors", record: @user
+    .field
+      = form.label :name, t("attributes.name")
+      = form.text_field :name, required: true, autofocus: true, autocomplete: "name"
+    .field
+      = form.label :email_address, t("attributes.email_address")
+      = form.email_field :email_address, required: true, autocomplete: "username"
+    .field
+      = form.label :password, t("attributes.password")
+      = form.password_field :password, required: true, autocomplete: "new-password", maxlength: 72
+    .field
+      = form.label :password_confirmation, t("attributes.password_confirmation")
+      = form.password_field :password_confirmation, required: true, autocomplete: "new-password", maxlength: 72
+    .actions
+      = form.submit t("setup.admin.submit")

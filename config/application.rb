@@ -40,6 +40,10 @@ module AivoraAi
     config.generators.system_tests = nil
     config.generators.template_engine = :slim
 
+    # The product is Japanese-first; validation messages come from rails-i18n.
+    config.i18n.default_locale = :ja
+    config.i18n.available_locales = %i[ja en]
+
     # Background work goes through Solid Queue on the primary PostgreSQL database.
     # No Redis. Test overrides this with the :test adapter.
     config.active_job.queue_adapter = :solid_queue
