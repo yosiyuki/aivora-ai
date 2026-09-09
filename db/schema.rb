@@ -167,6 +167,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_030000) do
     t.index ["knowledge_type", "knowledge_id", "version"], name: "idx_on_knowledge_type_knowledge_id_version_47208a0a92", unique: true
   end
 
+  create_table "llm_usage", force: :cascade do |t|
+    t.integer "cache_creation_input_tokens", default: 0, null: false
+    t.integer "cache_read_input_tokens", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.decimal "estimated_cost", precision: 12, scale: 6, default: "0.0", null: false
+    t.integer "input_tokens", default: 0, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.string "model", null: false
+    t.string "operation_type", null: false
+    t.integer "output_tokens", default: 0, null: false
+    t.bigint "related_id"
+    t.string "related_type"
+    t.bigint "site_id"
+    t.boolean "succeeded", default: true, null: false
+    t.index ["operation_type"], name: "index_llm_usage_on_operation_type"
+    t.index ["related_type", "related_id"], name: "index_llm_usage_on_related_type_and_related_id"
+    t.index ["site_id", "created_at"], name: "index_llm_usage_on_site_id_and_created_at"
+    t.index ["site_id"], name: "index_llm_usage_on_site_id"
+  end
+
   create_table "problems", force: :cascade do |t|
     t.string "audience_segment"
     t.float "confidence", default: 0.0, null: false
@@ -431,6 +451,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_030000) do
   add_foreign_key "interview_turns", "interviews"
   add_foreign_key "interview_turns", "source_items"
   add_foreign_key "interviews", "sites"
+  add_foreign_key "llm_usage", "sites"
   add_foreign_key "problems", "entities"
   add_foreign_key "problems", "sites"
   add_foreign_key "questions", "entities"

@@ -51,7 +51,10 @@ module AivoraAi
     # Which process role this instance is serving (web | public). See AppRole.
     config.x.app_role = ENV.fetch("APP_ROLE", "web")
 
-    # LLM API key is read at boot but not required to boot.
+    # LLM API key is read at boot but not required to boot. Routing and pricing
+    # tables live in config/llm.yml and config/llm_pricing.yml.
     config.x.llm.api_key = ENV["LLM_API_KEY"]
+    config.x.llm.routing = config_for(:llm)
+    config.x.llm.pricing = config_for(:llm_pricing)
   end
 end
