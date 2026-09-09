@@ -15,7 +15,33 @@ class Site < ApplicationRecord
   validates :status, inclusion: { in: STATUSES }
   validate :only_one_site
 
+  has_many :site_archetypes, dependent: :destroy
+
   def self.current = first
+
+  # Archetypes are derived from goals (README §28), never chosen by the user.
+  # Adding one only adds structure; existing URLs never move.
+  def add_archetype(key, primary: false)
+    key = key.to_s
+    transaction do
+      site_archetypes.primary.update_all(is_primary: false) if primary
+      record = site_archetypes.find_or_initialize_by(archetype: key)
+      record.assign_attributes(is_primary: primary || record.is_primary, activated_at: record.activated_at || Time.current)
+      record.save!
+      update!(primary_archetype: key) if primary
+      record
+    end
+  end
+
+  def archetype_definitions = site_archetypes.order(is_primary: :desc, activated_at: :asc).map(&:definition)
+  def primary_archetype_definition = primary_archetype.presence && ArchetypeDefinition.find(primary_archetype)
+
+  # Union of the slots every active archetype needs. The same key can appear
+  # in several definitions (e.g. `name`); the highest weight wins.
+  def required_slots(level: nil)
+    merged = archetype_definitions.flat_map(&:slots).group_by(&:key).map { |_, group| group.max_by(&:weight) }
+    level ? merged.select { |s| s.level == level.to_s } : merged
+  end
 
   def self.extract_host(value)
     value = value.to_s.strip

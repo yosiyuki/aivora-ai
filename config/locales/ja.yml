@@ -27,6 +27,10 @@ ja:
               invalid_hostname: "はドメイン名として正しくありません（例: example.com）"
             base:
               only_one_site: このデプロイにはサイトを 1 つしか登録できません
+        site_archetype:
+          attributes:
+            archetype:
+              undefined: は定義されていません
   sessions:
     title: ログイン
     submit: ログイン
