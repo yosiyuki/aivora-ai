@@ -31,6 +31,10 @@ ja:
           attributes:
             archetype:
               undefined: は定義されていません
+        interview_turn:
+          attributes:
+            examples:
+              three_examples: は 3 つ必要です
   sessions:
     title: ログイン
     submit: ログイン
@@ -54,4 +58,29 @@ ja:
   admin:
     dashboard:
       title: ダッシュボード
-      next_step: 初期設定は完了しています。次はヒアリングです（近日追加）。
+      interview_pending: あなたのことを少し教えてください。それだけで最初のページが作れます。
+      continue_interview: ヒアリングを続ける
+      next_step: ヒアリングは完了しています。次は最初の記事の生成です（近日追加）。
+  interview:
+    title: ヒアリング
+    examples_label: 答え方の例
+    answer_label: あなたの答え
+    placeholder: 自分の言葉で、自由に書いてください。長くても短くても構いません。
+    send: 送る
+    later: あとで続ける
+    blank_answer: 何か書いてから送ってください。
+    completed: ヒアリングを終えました。ここからはこちらで進めます。
+    already_completed: ヒアリングは完了しています。
+    nothing_to_ask: 聞くことはもうありません。
+    no_more_questions: ここまでの内容で、一度ページを作ってみましょう
+    no_more_questions_lead: 足りない情報があれば、ページができたあとに個別にお聞きします。
+    progress:
+      collecting: 自分の言葉で教えてください
+      almost: あと少しで最初のページが作れます
+      ready: もう十分です。ページを作ってみますか？
+      capped: 一度ここまでで、ページを作ってみましょう
+    finish:
+      collecting: ここまでで一度ページを作る
+      almost: ここまでで一度ページを作る
+      ready: ページを作る
+      capped: ページを作る
