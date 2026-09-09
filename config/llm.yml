@@ -1,0 +1,28 @@
+# Model routing (Technical Architecture §37) and per-operation settings.
+# Every LLM call goes through Llm::Client.for(operation) and reads this table.
+#
+# Phase 1 default: claude-opus-5 for every operation. Interview-time volume is
+# tiny and accuracy matters more than price; moving extraction to a smaller
+# model is a decision to make from llm_usage data (#7), not up front.
+default: &default
+  adapter: anthropic
+  # Server-side refusal fallbacks (beta): if the primary model declines a
+  # request, the API retries on a fallback chosen by refusal category, so an
+  # extraction is not lost to a classifier false positive. Set false to disable.
+  fallbacks: true
+  operations:
+    extraction:        { model: claude-opus-5, effort: medium, max_tokens: 4096 }
+    entity_resolution: { model: claude-opus-5, effort: medium, max_tokens: 2048 }
+    planning:          { model: claude-opus-5, effort: high,   max_tokens: 8192 }
+    drafting:          { model: claude-opus-5, effort: high,   max_tokens: 16000 }
+    grounding:         { model: claude-opus-5, effort: medium, max_tokens: 4096 }
+
+development:
+  <<: *default
+
+test:
+  <<: *default
+  adapter: fake
+
+production:
+  <<: *default
