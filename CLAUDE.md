@@ -122,7 +122,12 @@ approval queue. The Review UI is an **after-the-fact observation surface**, not 
 backing Knowledge is left **blank and raises a Verification Request** — never filled by guessing. This is
 the core quality mechanism, since Human Review is absent.
 
-**Knowledge is provenanced, versioned, and temporal.** Facts carry `valid_from` / `valid_until` /
+**Knowledge is provenanced, versioned, and temporal.** In code: models include `Versioned` (every
+create/update appends a `knowledge_versions` snapshot) and `Evidenced` (`add_evidence!`, `provenanced?`).
+`Fact#accept!(evidence:)` is the only way a fact becomes accepted — the validation refuses `accepted`
+without an evidence link — and `Fact#supersede!` closes the old fact's validity window instead of editing
+it. `EntityCandidate#promote!` is the only way a candidate becomes an `Entity`.
+Facts carry `valid_from` / `valid_until` /
 `last_verified_at` / `confidence` / `risk_level`; updates create `knowledge_versions` (§11;
 `DatabaseSchema.md` §20).
 
