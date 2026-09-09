@@ -10,9 +10,39 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_10_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_10_020100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "interview_turns", force: :cascade do |t|
+    t.text "answer_text"
+    t.datetime "answered_at"
+    t.datetime "created_at", null: false
+    t.jsonb "examples", default: [], null: false
+    t.bigint "interview_id", null: false
+    t.integer "position", null: false
+    t.string "question_kind", null: false
+    t.text "question_text", null: false
+    t.bigint "source_item_id"
+    t.datetime "updated_at", null: false
+    t.index ["interview_id", "position"], name: "index_interview_turns_on_interview_id_and_position", unique: true
+    t.index ["interview_id"], name: "index_interview_turns_on_interview_id"
+    t.index ["source_item_id"], name: "index_interview_turns_on_source_item_id"
+  end
+
+  create_table "interviews", force: :cascade do |t|
+    t.float "archetype_confidence"
+    t.string "archetype_hypothesis"
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.integer "question_count", default: 0, null: false
+    t.bigint "site_id", null: false
+    t.jsonb "slot_state", default: {}, null: false
+    t.datetime "started_at", null: false
+    t.string "status", default: "in_progress", null: false
+    t.datetime "updated_at", null: false
+    t.index ["site_id"], name: "index_interviews_on_site_id"
+  end
 
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -197,6 +227,35 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_010000) do
     t.index ["key"], name: "index_solid_queue_semaphores_on_key", unique: true
   end
 
+  create_table "source_items", force: :cascade do |t|
+    t.string "checksum", null: false
+    t.datetime "created_at", null: false
+    t.string "external_id"
+    t.datetime "fetched_at", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "published_at"
+    t.text "raw_content", null: false
+    t.bigint "source_id", null: false
+    t.string "source_url"
+    t.index ["source_id", "checksum"], name: "index_source_items_on_source_id_and_checksum", unique: true
+    t.index ["source_id", "external_id"], name: "index_source_items_on_source_id_and_external_id"
+    t.index ["source_id"], name: "index_source_items_on_source_id"
+  end
+
+  create_table "sources", force: :cascade do |t|
+    t.jsonb "config", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.boolean "enabled", default: true, null: false
+    t.string "external_id"
+    t.string "name", null: false
+    t.bigint "site_id", null: false
+    t.string "source_type", null: false
+    t.string "trust_level", default: "external", null: false
+    t.datetime "updated_at", null: false
+    t.index ["site_id", "source_type"], name: "index_sources_on_site_id_and_source_type"
+    t.index ["site_id"], name: "index_sources_on_site_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email_address", null: false
@@ -206,6 +265,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_010000) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "interview_turns", "interviews"
+  add_foreign_key "interview_turns", "source_items"
+  add_foreign_key "interviews", "sites"
   add_foreign_key "sessions", "users"
   add_foreign_key "site_archetypes", "sites"
   add_foreign_key "solid_queue_batch_executions", "solid_queue_batches", column: "batch_id", on_delete: :cascade
@@ -216,4 +278,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_010000) do
   add_foreign_key "solid_queue_ready_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "source_items", "sources"
+  add_foreign_key "sources", "sites"
 end
