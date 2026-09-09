@@ -1,0 +1,10 @@
+archetype: portfolio
+label: 実績・プロフィール
+default_metric: contacts
+page_structure: [top, works, profile]
+slots:
+  - { key: name,      label: 名前,             level: minimum,  kind: verifiable,   weight: 1.0 }
+  - { key: what,      label: 何をしている人か, level: minimum,  kind: experiential, weight: 1.0 }
+  - { key: works,     label: 代表的な実績,     level: standard, kind: experiential, weight: 0.9 }
+  - { key: contact,   label: 連絡手段,         level: standard, kind: verifiable,   weight: 0.8 }
+  - { key: story,     label: 経歴・背景,       level: enriched, kind: experiential, weight: 0.5 }

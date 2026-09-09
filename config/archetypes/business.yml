@@ -1,0 +1,15 @@
+# Product-fixed archetype definition (README §28). The LLM only classifies which
+# archetype a goal implies; it never authors this file.
+archetype: business
+label: お店・サービス
+default_metric: visits_or_inquiries
+page_structure: [top, services, faq, news]
+slots:
+  - { key: name,      label: 名前,             level: minimum,  kind: verifiable,   weight: 1.0 }
+  - { key: what,      label: 何をしているか,   level: minimum,  kind: experiential, weight: 1.0 }
+  - { key: location,  label: 場所,             level: minimum,  kind: verifiable,   weight: 1.0 }
+  - { key: hours,     label: 営業時間,         level: standard, kind: verifiable,   weight: 0.9 }
+  - { key: contact,   label: 連絡手段,         level: standard, kind: verifiable,   weight: 0.8 }
+  - { key: offerings, label: 提供内容,         level: standard, kind: verifiable,   weight: 0.8 }
+  - { key: story,     label: こだわり・背景,   level: enriched, kind: experiential, weight: 0.5 }
+  - { key: access,    label: アクセス,         level: enriched, kind: verifiable,   weight: 0.4 }

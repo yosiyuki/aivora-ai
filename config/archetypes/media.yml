@@ -1,0 +1,10 @@
+archetype: media
+label: 発信・ブログ
+default_metric: visits
+page_structure: [top, articles, categories, article]
+slots:
+  - { key: name,      label: 名前・サイト名,   level: minimum,  kind: verifiable,   weight: 0.8 }
+  - { key: topic,     label: 何について書くか, level: minimum,  kind: experiential, weight: 1.0 }
+  - { key: audience,  label: 誰に読んでほしいか, level: minimum, kind: experiential, weight: 0.9 }
+  - { key: stance,    label: 立場・経験,       level: standard, kind: experiential, weight: 0.7 }
+  - { key: cadence,   label: 更新の頻度,       level: enriched, kind: experiential, weight: 0.3 }
