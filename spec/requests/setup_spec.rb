@@ -22,12 +22,12 @@ RSpec.describe "First-run setup", type: :request do
     expect(response).to have_http_status(:ok), "the new admin is signed in and reaches step 2"
 
     post setup_site_path, params: { site: { name: "渋谷のカフェ", domain: "https://cafe.example/menu" } }
-    expect(response).to redirect_to(admin_root_path)
+    expect(response).to redirect_to(admin_interview_path)
     expect(Site.count).to eq(1)
     expect(Site.current.domain).to eq("cafe.example")
 
     follow_redirect!
-    expect(response.body).to include("渋谷のカフェ")
+    expect(response.body).to include("あなたの役割を教えてください")
   end
 
   it "re-renders the form with errors instead of creating a half-configured admin" do

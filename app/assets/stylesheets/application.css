@@ -55,3 +55,18 @@ button.link { color: var(--accent); background: none; padding: 0; }
 dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 1.5rem; }
 dt { color: var(--muted); }
 dd { margin: 0; }
+
+/* Interview: examples are a guide to granularity, deliberately not clickable. */
+.interview h1 { font-size: 1.25rem; line-height: 1.5; }
+.examples { list-style: none; padding: 0; margin: 0.75rem 0 1.25rem; border-left: 3px solid var(--line); }
+.examples li { color: var(--muted); padding: 0.25rem 0.75rem; font-size: 0.9375rem; }
+.examples li::before { content: "例："; margin-right: 0.25rem; }
+.field textarea { width: 100%; box-sizing: border-box; padding: 0.625rem; font: inherit; line-height: 1.6; border: 1px solid var(--line); border-radius: 0.375rem; resize: vertical; }
+.field textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.finish { margin-top: 1rem; }
+.finish form { display: inline; }
+button.secondary { color: var(--accent); background: #fff; border: 1px solid var(--accent); }
+.later { margin: 1rem 0 0; font-size: 0.875rem; }
+.later a { color: var(--muted); }
+a.button { display: inline-block; padding: 0.5rem 1rem; color: #fff; background: var(--accent); border-radius: 0.375rem; text-decoration: none; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
