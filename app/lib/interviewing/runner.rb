@@ -6,7 +6,7 @@ module Interviewing
   class Runner
     attr_reader :interview
 
-    def initialize(interview, question_source: FixedQuestionSource.new)
+    def initialize(interview, question_source: LlmQuestionSource.new)
       @interview = interview
       @question_source = question_source
     end
@@ -14,7 +14,7 @@ module Interviewing
     # The unanswered turn to show; created on demand so a browser that comes
     # back later lands on exactly the same question.
     def current_turn
-      return nil unless interview.in_progress?
+      return nil unless interview.accepting_answers?
 
       interview.current_turn || build_next_turn
     end
@@ -34,6 +34,14 @@ module Interviewing
         interview.increment!(:question_count)
         interview.update!(status: "ready") if interview.ready_to_generate?
       end
+      turn
+    end
+
+    # Extraction runs after the answer is durably stored, outside its
+    # transaction, so a model failure can never lose the answer.
+    def answer_and_process!(text, processor: Processor.new(interview))
+      turn = answer!(text)
+      processor.process!(turn)
       turn
     end
 

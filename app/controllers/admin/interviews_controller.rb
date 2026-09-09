@@ -17,7 +17,7 @@ module Admin
 
     def answer
       runner = Interviewing::Runner.new(@interview)
-      runner.answer!(params[:answer])
+      runner.answer_and_process!(params[:answer])
       redirect_to admin_interview_path
     rescue ArgumentError
       redirect_to admin_interview_path, alert: t("interview.blank_answer")
