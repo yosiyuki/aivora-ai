@@ -13,6 +13,8 @@ class Interview < ApplicationRecord
   before_validation { self.started_at ||= Time.current }
 
   def in_progress? = status == "in_progress"
+  # Once the minimum slots are filled the user may still keep talking.
+  def accepting_answers? = %w[in_progress ready].include?(status)
   def completed? = status == "completed"
   def capped? = question_count >= QUESTION_CAP
 
