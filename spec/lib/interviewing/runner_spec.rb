@@ -35,9 +35,21 @@ RSpec.describe Interviewing::Runner do
     expect(second.question_kind).to eq("topic")
   end
 
-  it "rejects blank answers and unanswered double submits" do
+  it "rejects blank answers" do
     expect { runner.answer!("   ") }.to raise_error(ArgumentError, /blank/)
     expect(interview.reload.question_count).to eq(0)
+  end
+
+  it "records a double submit of the same turn once and rejects a stale one" do
+    first = runner.current_turn
+    runner.answer!("店主です", turn_id: first.id)
+    expect(runner.answer!("店主です", turn_id: first.id)).to eq(first), "retry is idempotent"
+    expect(interview.reload.question_count).to eq(1)
+    expect(SourceItem.count).to eq(1)
+
+    expect { runner.answer!("別の答え", turn_id: first.id) }.to raise_error(Interviewing::Runner::StaleTurn)
+    expect { runner.answer!("答え", turn_id: 999_999) }.to raise_error(Interviewing::Runner::StaleTurn)
+    expect(interview.reload.question_count).to eq(1)
   end
 
   it "stops handing out questions at the cap and offers to generate" do

@@ -52,10 +52,12 @@ class Site < ApplicationRecord
   def primary_archetype_definition = primary_archetype.presence && ArchetypeDefinition.find(primary_archetype)
 
   # Union of the slots every active archetype needs. The same key can appear
-  # in several definitions (e.g. `name`); the highest weight wins.
+  # in several definitions (e.g. `name`); the highest weight wins. The level
+  # filter is applied before merging, so a key that is minimum for one
+  # archetype is required even if another archetype ranks it lower.
   def required_slots(level: nil)
-    merged = archetype_definitions.flat_map(&:slots).group_by(&:key).map { |_, group| group.max_by(&:weight) }
-    level ? merged.select { |s| s.level == level.to_s } : merged
+    archetype_definitions.flat_map { |d| d.slots(level: level) }
+                         .group_by(&:key).map { |_, group| group.max_by(&:weight) }
   end
 
   def self.extract_host(value)

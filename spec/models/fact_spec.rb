@@ -36,4 +36,18 @@ RSpec.describe Fact, type: :model do
     expect(Fact.current).to eq([ newer ])
     expect(Fact.count).to eq(2), "nothing is deleted"
   end
+  it "cannot be flipped to accepted around accept!, even with evidence linked" do
+    fact = entity.facts.create!(attribute_key: "opening_hours", value_json: { "value" => "07:00" }, confidence: 0.9)
+    fact.add_evidence!(owner_evidence)
+    fact.status = "accepted"
+    expect(fact).not_to be_valid
+    expect(fact.errors[:status]).to include(I18n.t("activerecord.errors.models.fact.attributes.status.use_accept"))
+    expect(fact.last_verified_at).to be_nil
+  end
+
+  it "is never physically deleted" do
+    fact = entity.facts.create!(attribute_key: "opening_hours", value_json: { "value" => "07:00" }, confidence: 0.9)
+    expect { fact.destroy! }.to raise_error(ActiveRecord::DeleteRestrictionError)
+    expect(Fact.exists?(fact.id)).to be(true)
+  end
 end

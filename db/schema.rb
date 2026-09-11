@@ -37,6 +37,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_040000) do
     t.string "slug", null: false
     t.string "status", default: "active", null: false
     t.datetime "updated_at", null: false
+    t.index ["site_id", "entity_type", "canonical_name"], name: "index_entities_on_site_id_and_entity_type_and_canonical_name", unique: true
     t.index ["site_id", "slug"], name: "index_entities_on_site_id_and_slug", unique: true
     t.index ["site_id"], name: "index_entities_on_site_id"
   end
@@ -447,6 +448,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_040000) do
     t.datetime "updated_at", null: false
     t.index ["site_id", "source_type"], name: "index_sources_on_site_id_and_source_type"
     t.index ["site_id"], name: "index_sources_on_site_id"
+    t.index ["site_id"], name: "index_sources_one_interview_per_site", unique: true, where: "((source_type)::text = 'interview'::text)"
   end
 
   create_table "users", force: :cascade do |t|

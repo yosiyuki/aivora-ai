@@ -39,6 +39,11 @@ ja:
           attributes:
             status:
               needs_provenance: を accepted にするには根拠（evidence）が必要です
+              use_accept: を accepted にするには Fact#accept! を使ってください
+        evidence_link:
+          attributes:
+            evidence:
+              other_site: は別のサイトのものです
   sessions:
     title: ログイン
     submit: ログイン
@@ -73,6 +78,7 @@ ja:
     send: 送る
     later: あとで続ける
     blank_answer: 何か書いてから送ってください。
+    stale_turn: 画面が古くなっていたので、いまの質問を表示しました。もう一度お願いします。
     completed: ヒアリングを終えました。ここからはこちらで進めます。
     already_completed: ヒアリングは完了しています。
     nothing_to_ask: 聞くことはもうありません。

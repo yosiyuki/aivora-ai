@@ -19,12 +19,27 @@ module Interviewing
       interview.current_turn || build_next_turn
     end
 
-    def answer!(text)
+    class StaleTurn < ArgumentError; end
+
+    # Records an answer against the turn the user was shown. The interview row
+    # is locked for the write, so a double submit records once and returns the
+    # already-answered turn; a submit for an older question is rejected.
+    def answer!(text, turn_id: nil)
       text = text.to_s.strip
       raise ArgumentError, "answer is blank" if text.blank?
 
-      turn = current_turn or raise ArgumentError, "interview is not accepting answers"
+      current_turn or raise ArgumentError, "interview is not accepting answers"
       interview.transaction do
+        interview.lock!
+        turns = interview.turns.reload
+        if turn_id
+          shown = turns.find { |t| t.id == turn_id.to_i } or raise StaleTurn, "turn #{turn_id} is not part of this interview"
+          return shown if shown.answered? && shown.answer_text == text
+          raise StaleTurn, "turn #{turn_id} was already answered" if shown.answered?
+        end
+        turn = turns.find { |t| !t.answered? } or raise ArgumentError, "interview is not accepting answers"
+        raise StaleTurn, "turn #{turn_id} is no longer the current question" if turn_id && turn.id != turn_id.to_i
+
         item = Source.interview_for(interview.site).source_items.create!(
           external_id: "interview-turn-#{turn.id}",
           raw_content: text,
@@ -33,15 +48,15 @@ module Interviewing
         turn.update!(answer_text: text, answered_at: Time.current, source_item: item)
         interview.increment!(:question_count)
         interview.update!(status: "ready") if interview.ready_to_generate?
+        turn
       end
-      turn
     end
 
     # Extraction runs after the answer is durably stored, outside its
     # transaction, so a model failure can never lose the answer.
-    def answer_and_process!(text, processor: Processor.new(interview))
-      turn = answer!(text)
-      processor.process!(turn)
+    def answer_and_process!(text, turn_id: nil, processor: Processor.new(interview))
+      turn = answer!(text, turn_id: turn_id)
+      processor.process!(turn) unless turn.extracted?   # an idempotent resubmit must not extract twice
       turn
     end
 

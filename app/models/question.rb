@@ -1,4 +1,5 @@
 class Question < ApplicationRecord
+  include Versioned
   include Evidenced
 
   belongs_to :site

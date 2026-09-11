@@ -30,5 +30,16 @@ RSpec.describe Entity, type: :model do
     again = site.entity_candidates.create!(candidate_name: "渋谷のカフェ", entity_type: "business", confidence: 0.5)
     expect(again.promote!).to eq(entity), "same name and type resolves to the existing entity"
     expect(site.entities.count).to eq(1)
+    expect(candidate.promote!).to eq(entity), "promoting an accepted candidate again is a no-op"
+
+    rejected = site.entity_candidates.create!(candidate_name: "別の店", entity_type: "business", confidence: 0.5)
+    rejected.reject!
+    expect { rejected.promote! }.to raise_error(ArgumentError, /rejected/)
+    expect(rejected.reload.status).to eq("rejected")
+  end
+
+  it "enforces one entity per (site, type, name) at the database" do
+    site.entities.create!(entity_type: "business", canonical_name: "渋谷のカフェ")
+    expect { site.entities.create!(entity_type: "business", canonical_name: "渋谷のカフェ") }.to raise_error(ActiveRecord::RecordNotUnique)
   end
 end

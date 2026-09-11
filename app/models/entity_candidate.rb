@@ -16,11 +16,18 @@ class EntityCandidate < ApplicationRecord
 
   def pending? = status == "pending"
 
+  # Idempotent for an accepted candidate; a rejected one stays rejected.
+  # Resolution by (site, type, name) rides on the unique index, so two
+  # workers promoting the same name cannot create two entities.
   def promote!(changed_by: nil)
+    return proposed_entity if status == "accepted" && proposed_entity
+    raise ArgumentError, "candidate #{id} was rejected and cannot be promoted" if status == "rejected"
+
     transaction do
-      entity = proposed_entity || site.entities.find_by(canonical_name: candidate_name, entity_type: entity_type) ||
-               site.entities.create!(entity_type: entity_type, canonical_name: candidate_name, changed_by: changed_by,
-                                     change_reason: "promoted from candidate #{id}")
+      entity = proposed_entity || site.entities.create_or_find_by!(entity_type: entity_type, canonical_name: candidate_name) do |e|
+        e.changed_by = changed_by
+        e.change_reason = "promoted from candidate #{id}"
+      end
       update!(status: "accepted", proposed_entity: entity)
       entity
     end
