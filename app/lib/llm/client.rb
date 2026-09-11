@@ -37,23 +37,29 @@ module Llm
     # Structured output. `input` is the untrusted text; it goes in the user
     # turn, never in the system prompt.
     def extract(system:, input:, schema:, related: nil)
-      result = call(system:, messages: [ { role: :user, content: input } ], schema:, related:)
-      JSON.parse(result.text)
-    rescue JSON::ParserError => e
-      raise MalformedOutputError, "structured output is not valid JSON: #{e.message}"
+      raise ArgumentError, "extract requires a JSON schema; use generate for free text" if schema.blank?
+
+      call(system:, messages: [ { role: :user, content: input } ], schema:, related:) { |result| JSON.parse(result.text) }
     end
 
     def generate(system:, messages:, related: nil)
-      call(system:, messages:, related:).text
+      call(system:, messages:, related:, &:text)
     end
 
     private
 
+    # The usage row is written after the result has been interpreted, so a
+    # response that cannot be used is never recorded as a success.
     def call(system:, messages:, related:, schema: nil)
       result = @adapter.complete(model:, max_tokens:, effort:, system:, messages:, schema:)
       check_stop_reason!(result, related)
+      value = yield(result)
       LlmUsage.record!(operation_type: operation, model: result.model, usage: result.usage, related:)
-      result
+      value
+    rescue JSON::ParserError => e
+      LlmUsage.record!(operation_type: operation, model: result.model, usage: result.usage, related:, succeeded: false,
+                       metadata: { error: "malformed_output", message: e.message.to_s.first(500) })
+      raise MalformedOutputError, "structured output is not valid JSON: #{e.message}"
     rescue RefusedError, TruncatedError
       raise
     rescue Error => e

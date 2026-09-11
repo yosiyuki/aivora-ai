@@ -35,10 +35,10 @@ module Llm
         usage: usage_hash(message.usage),
         stop_details: message.stop_details && { category: message.stop_details.category, explanation: message.stop_details.explanation }
       )
-    rescue ::Anthropic::Errors::RateLimitError, ::Anthropic::Errors::InternalServerError => e
-      raise RequestError.new(e.message, retryable: true, status: e.status)
     rescue ::Anthropic::Errors::APIStatusError => e
-      raise RequestError.new(e.message, retryable: false, status: e.status)
+      # 429 and every 5xx (502/503/504 arrive as the generic status error) are worth a retry; other 4xx are not.
+      retryable = e.is_a?(::Anthropic::Errors::RateLimitError) || e.status.to_i >= 500
+      raise RequestError.new(e.message, retryable: retryable, status: e.status)
     rescue ::Anthropic::Errors::APIConnectionError => e
       raise RequestError.new(e.message, retryable: true)
     end
