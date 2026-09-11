@@ -9,6 +9,8 @@ RSpec.describe ArchetypeDefinition do
     business = described_class.find(:business)
     expect(business.page_structure).to eq(%w[top services faq news])
     expect(business.minimum_slots.map(&:key)).to eq(%w[name what location])
+    expect(business.slots(level: :standard).map(&:key)).to eq(%w[hours contact offerings])
+    expect(business.slots.size).to eq(8)
     expect(business.slot(:hours)).to have_attributes(level: "standard", kind: "verifiable", weight: 0.9)
     expect(business.default_metric).to eq("visits_or_inquiries")
   end
@@ -16,6 +18,10 @@ RSpec.describe ArchetypeDefinition do
   it "weights the same slot differently per archetype: hours matter for a shop, not for a blog" do
     expect(described_class.find(:business).slot(:hours)).to be_present
     expect(described_class.find(:media).slot(:hours)).to be_nil
+  end
+
+  it "is validated at boot by the initializer, not lazily" do
+    expect(Rails.root.join("config/initializers/archetype_definitions.rb").read).to include("ArchetypeDefinition.all")
   end
 
   it "raises for an unknown archetype" do

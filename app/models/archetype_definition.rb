@@ -10,7 +10,7 @@ class ArchetypeDefinition
     def minimum? = level == "minimum"
   end
 
-  attr_reader :archetype, :label, :default_metric, :page_structure, :slots
+  attr_reader :archetype, :label, :default_metric, :page_structure
 
   class << self
     def all = (@all ||= load_all.freeze)
@@ -38,8 +38,10 @@ class ArchetypeDefinition
     @slots = slots.map { |s| Slot.new(key: s[:key].to_s, label: s[:label], level: s[:level].to_s, kind: s[:kind].to_s, weight: s[:weight].to_f) }.freeze
   end
 
-  def slots_at(level) = slots.select { |s| s.level == level.to_s }
-  def minimum_slots = slots_at(:minimum)
+  # All slots, or only those at one level: slots(level: :minimum).
+  def slots(level: nil) = level ? @slots.select { |s| s.level == level.to_s } : @slots
+  def slots_at(level) = slots(level: level)
+  def minimum_slots = slots(level: :minimum)
   def slot(key) = slots.find { |s| s.key == key.to_s }
 
   def validate!
