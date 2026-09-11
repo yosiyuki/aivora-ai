@@ -41,4 +41,19 @@ RSpec.describe Interviewing::ArchetypeResolver do
     resolver.resolve!([ { "archetype" => "portfolio", "confidence" => 0.8 } ])
     expect(interview.reload.status).to eq("ready")
   end
+  it "drops back to in_progress when a secondary archetype adds unfilled minimum slots" do
+    interview.fill_slot!(:name, value: "山田")
+    interview.fill_slot!(:what, value: "デザイナー")
+    resolver.resolve!([ { "archetype" => "portfolio", "confidence" => 0.9 } ])
+    expect(interview.reload.status).to eq("ready")
+
+    resolver.resolve!([ { "archetype" => "portfolio", "confidence" => 0.9 }, { "archetype" => "media", "confidence" => 0.8 } ])
+    expect(interview.reload.status).to eq("in_progress"), "media needs topic and audience"
+    expect(interview.missing_minimum_slot_keys).to contain_exactly("topic", "audience")
+  end
+
+  it "clamps a confidence above 1 rather than trusting it" do
+    resolver.resolve!([ { "archetype" => "business", "confidence" => 42 } ])
+    expect(interview.reload.archetype_confidence).to eq(1.0)
+  end
 end

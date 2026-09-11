@@ -17,11 +17,11 @@ module Interviewing
     end
 
     def resolve!(candidates)
-      ranked = Array(candidates).select { |c| ArchetypeDefinition.exists?(c["archetype"]) }
-                                .sort_by { |c| -c["confidence"].to_f }
+      ranked = Array(candidates).select { |c| c.is_a?(Hash) && ArchetypeDefinition.exists?(c["archetype"]) }
+                                .sort_by { |c| -confidence(c) }
       top = ranked.first
-      @interview.update!(archetype_hypothesis: top&.dig("archetype"), archetype_confidence: top&.dig("confidence")&.to_f)
-      return handle_low_confidence unless top && top["confidence"].to_f >= CONFIRM
+      @interview.update!(archetype_hypothesis: top&.dig("archetype"), archetype_confidence: top && confidence(top))
+      return handle_low_confidence unless top && confidence(top) >= CONFIRM
 
       @interview.update!(low_confidence_streak: 0)
       unless @site.primary_archetype.present?
@@ -30,12 +30,23 @@ module Interviewing
       end
       # Archetypes compose: any other strong candidate is added, never swapped in.
       ranked.reject { |c| c["archetype"] == @site.reload.primary_archetype }
-            .select { |c| c["confidence"].to_f >= SECONDARY }
+            .select { |c| confidence(c) >= SECONDARY }
             .each { |c| @site.add_archetype(c["archetype"]) }
-      @interview.update!(status: "ready") if @interview.in_progress? && @interview.ready_to_generate?
+      recompute_readiness!
+    end
+
+    # A new archetype can add minimum slots, so readiness is recomputed in
+    # both directions: ready <-> in_progress, never touching completed.
+    def recompute_readiness!
+      return unless @interview.accepting_answers?
+
+      @interview.update!(status: @interview.ready_to_generate? ? "ready" : "in_progress")
     end
 
     private
+
+    # Structured outputs cannot carry numeric bounds, so the clamp lives here.
+    def confidence(candidate) = candidate["confidence"].to_f.clamp(0.0, 1.0)
 
     def handle_low_confidence
       return if @site.primary_archetype.present?

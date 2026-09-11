@@ -52,8 +52,28 @@ RSpec.describe Interviewing::Router do
     expect(interview.reload.slot_state).to include("location")
   end
 
-  it "drops a proposed next question that does not carry exactly three examples" do
+  it "drops a proposed next question without three examples of differing length" do
     described_class.new(interview).route!(turn, cafe_output("next_question" => { "text" => "x", "examples" => [ "a" ], "targets_slot" => nil, "quotes_user" => false }))
     expect(interview.reload.pending_question).to be_nil
+
+    other = runner.answer!("次")
+    described_class.new(interview).route!(other, cafe_output("next_question" => { "text" => "x", "examples" => %w[abc def ghi], "targets_slot" => nil, "quotes_user" => true }))
+    expect(interview.reload.pending_question).to be_nil, "three same-length examples read as a menu"
+  end
+
+  it "clamps out-of-range confidences and keeps the raw answer as the experience body when the quote is missing" do
+    described_class.new(interview).route!(turn, cafe_output(
+      "primary_entity" => { "name" => "渋谷のカフェ", "entity_type" => "business", "confidence" => 1.7 },
+      "experiences" => [ { "slot" => "what", "summary" => "自家焙煎", "quote" => "", "confidence" => -2 } ]
+    ))
+    expect(site.entity_candidates.sole.confidence).to eq(1.0)
+    expect(site.experiences.sole.body).to eq(turn.answer_text), "never the model's paraphrase"
+    expect(interview.reload.slot_state.dig("what", "confidence")).to eq(0.0)
+  end
+
+  it "gives a goal the metric immediately when the archetype is already known" do
+    site.add_archetype(:business, primary: true)
+    described_class.new(interview).route!(turn, cafe_output)
+    expect(site.goals.sole).to have_attributes(archetype: "business", metric: "visits_or_inquiries")
   end
 end
