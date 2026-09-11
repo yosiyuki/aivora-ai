@@ -11,11 +11,15 @@ class Source < ApplicationRecord
   validates :trust_level, inclusion: { in: TRUST_LEVELS }
   validates :name, presence: true
 
+  INTERVIEW_ATTRIBUTES = { name: "ヒアリング", trust_level: "owner", enabled: true }.freeze
+
+  # The reserved interview source. create_or_find_by! rides on the partial
+  # unique index, so a concurrent first answer cannot create two; the owner
+  # trust level is enforced on every lookup, not only on creation.
   def self.interview_for(site)
-    site.sources.find_or_create_by!(source_type: "interview") do |s|
-      s.name = "ヒアリング"
-      s.trust_level = "owner"
-    end
+    source = site.sources.create_or_find_by!(source_type: "interview") { |s| s.assign_attributes(INTERVIEW_ATTRIBUTES) }
+    source.update!(INTERVIEW_ATTRIBUTES) unless INTERVIEW_ATTRIBUTES.all? { |k, v| source.public_send(k) == v }
+    source
   end
 
   def owner? = trust_level == "owner"

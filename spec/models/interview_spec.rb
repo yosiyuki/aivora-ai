@@ -33,4 +33,12 @@ RSpec.describe Interview, type: :model do
     expect(interview).to be_completed
     expect(site.reload.status).to eq("active")
   end
+  it "has exactly one owner-trusted interview source per site, whatever state it is found in" do
+    a = Source.interview_for(site)
+    a.update_columns(trust_level: "external", enabled: false)
+    b = Source.interview_for(site)
+    expect(b).to eq(a)
+    expect(b.reload).to have_attributes(trust_level: "owner", enabled: true)
+    expect { site.sources.create!(source_type: "interview", name: "x") }.to raise_error(ActiveRecord::RecordNotUnique)
+  end
 end
