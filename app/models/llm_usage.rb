@@ -16,6 +16,8 @@ class LlmUsage < ApplicationRecord
 
   def self.record!(operation_type:, model:, usage: nil, related: nil, succeeded: true, metadata: {})
     tokens = usage.to_h
+    # An unlisted model (rename, unexpected fallback) must not look like a free call.
+    metadata = metadata.merge("pricing_unknown" => true) unless Llm::Pricing.known?(model)
     create!(
       site: Site.current,
       operation_type: operation_type.to_s,

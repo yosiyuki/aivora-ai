@@ -41,10 +41,18 @@ RSpec.describe Llm::Client do
     expect(LlmUsage.last).to have_attributes(succeeded: false)
   end
 
-  it "raises MalformedOutputError on non-JSON structured output" do
+  it "raises MalformedOutputError on non-JSON structured output and records the call as failed" do
     Llm::Fake.respond(:extraction) { "not json" }
     expect { described_class.for(:extraction).extract(system: "s", input: "i", schema: schema) }
       .to raise_error(Llm::MalformedOutputError)
+    expect(LlmUsage.sole).to have_attributes(succeeded: false)
+    expect(LlmUsage.sole.metadata).to include("error" => "malformed_output")
+  end
+
+  it "refuses to extract without a schema" do
+    expect { described_class.for(:extraction).extract(system: "s", input: "i", schema: nil) }
+      .to raise_error(ArgumentError, /schema/)
+    expect(LlmUsage.count).to eq(0)
   end
 
   it "returns plain text for generate" do

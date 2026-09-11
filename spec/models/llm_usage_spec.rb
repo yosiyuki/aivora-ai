@@ -18,9 +18,17 @@ RSpec.describe LlmUsage, type: :model do
     expect(row.metadata).to eq("error" => "Llm::RequestError")
   end
 
-  it "costs 0 for a model missing from the pricing table" do
+  it "flags a model missing from the pricing table instead of silently costing 0" do
     expect(Llm::Pricing.cost("claude-unknown", { input_tokens: 10 })).to eq(0)
     expect(Llm::Pricing).not_to be_known("claude-unknown")
+    row = described_class.record!(operation_type: :extraction, model: "claude-unknown", usage: { input_tokens: 10, output_tokens: 1 })
+    expect(row.metadata).to include("pricing_unknown" => true)
+  end
+
+  it "keeps the billed cost on refused or truncated calls, which the provider still charges for" do
+    row = described_class.record!(operation_type: :extraction, model: "claude-opus-5", succeeded: false,
+                                  usage: { input_tokens: 1_000_000 }, metadata: { error: "refusal" })
+    expect(row.estimated_cost).to eq(BigDecimal("5.0"))
   end
 
   it "rejects unknown operation types" do

@@ -61,6 +61,9 @@ RSpec.describe Llm::Anthropic do
     allow(messages_api).to receive(:create).and_raise(Anthropic::Errors::APIStatusError.for(url: "u", status: 429, headers: {}, body: nil, request: nil, response: nil, message: "slow down"))
     expect { complete }.to raise_error(Llm::RequestError) { |e| expect(e).to be_retryable; expect(e.status).to eq(429) }
 
+    allow(messages_api).to receive(:create).and_raise(Anthropic::Errors::APIStatusError.for(url: "u", status: 503, headers: {}, body: nil, request: nil, response: nil, message: "unavailable"))
+    expect { complete }.to raise_error(Llm::RequestError) { |e| expect(e).to be_retryable; expect(e.status).to eq(503) }
+
     allow(messages_api).to receive(:create).and_raise(Anthropic::Errors::APIStatusError.for(url: "u", status: 400, headers: {}, body: nil, request: nil, response: nil, message: "bad"))
     expect { complete }.to raise_error(Llm::RequestError) { |e| expect(e).not_to be_retryable }
   end
