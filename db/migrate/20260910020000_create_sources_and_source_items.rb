@@ -11,6 +11,8 @@ class CreateSourcesAndSourceItems < ActiveRecord::Migration[8.1]
       t.timestamps
     end
     add_index :sources, [ :site_id, :source_type ]
+    # Exactly one interview source per site; Source.interview_for relies on it.
+    add_index :sources, :site_id, unique: true, where: "source_type = 'interview'", name: "index_sources_one_interview_per_site"
 
     create_table :source_items do |t|
       t.references :source, null: false, foreign_key: true

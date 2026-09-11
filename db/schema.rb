@@ -404,6 +404,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_030000) do
     t.datetime "updated_at", null: false
     t.index ["site_id", "source_type"], name: "index_sources_on_site_id_and_source_type"
     t.index ["site_id"], name: "index_sources_on_site_id"
+    t.index ["site_id"], name: "index_sources_one_interview_per_site", unique: true, where: "((source_type)::text = 'interview'::text)"
   end
 
   create_table "users", force: :cascade do |t|

@@ -31,6 +31,17 @@ RSpec.describe SiteArchetype, type: :model do
     expect(site.required_slots.find { |s| s.key == "name" }.weight).to eq(1.0), "business (1.0) beats media (0.8)"
   end
 
+  it "keeps a slot required when one archetype has it at minimum and another at a lower level" do
+    shop = ArchetypeDefinition.new(archetype: "shop", label: "x", default_metric: "m", page_structure: [ "top" ],
+                                   slots: [ { key: "hours", label: "h", level: "minimum", kind: "verifiable", weight: 0.5 } ])
+    blog = ArchetypeDefinition.new(archetype: "blog", label: "x", default_metric: "m", page_structure: [ "top" ],
+                                   slots: [ { key: "hours", label: "h", level: "enriched", kind: "verifiable", weight: 0.9 } ])
+    allow(site).to receive(:archetype_definitions).and_return([ shop, blog ])
+
+    expect(site.required_slots(level: :minimum).map(&:key)).to eq([ "hours" ])
+    expect(site.required_slots.sole.weight).to eq(0.9), "without a level filter the higher weight still wins"
+  end
+
   it "rejects archetypes that are not defined" do
     record = site.site_archetypes.build(archetype: "cathedral", activated_at: Time.current)
     expect(record).not_to be_valid

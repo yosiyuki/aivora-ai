@@ -78,6 +78,7 @@ ja:
     send: 送る
     later: あとで続ける
     blank_answer: 何か書いてから送ってください。
+    stale_turn: 画面が古くなっていたので、いまの質問を表示しました。もう一度お願いします。
     completed: ヒアリングを終えました。ここからはこちらで進めます。
     already_completed: ヒアリングは完了しています。
     nothing_to_ask: 聞くことはもうありません。

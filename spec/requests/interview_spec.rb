@@ -25,6 +25,18 @@ RSpec.describe "Admin interview", type: :request do
     expect(response.body).to include("何について発信しますか")
   end
 
+  it "rejects an answer posted from an outdated page" do
+    sign_in(user)
+    get admin_interview_path
+    first = site.current_interview.turns.first
+    post answer_admin_interview_path, params: { answer: "店主です", turn_id: first.id }
+    post answer_admin_interview_path, params: { answer: "遅れて届いた答え", turn_id: first.id }
+    expect(response).to redirect_to(admin_interview_path)
+    expect(flash[:alert]).to eq(I18n.t("interview.stale_turn"))
+    expect(first.reload.answer_text).to eq("店主です")
+    expect(site.current_interview.question_count).to eq(1)
+  end
+
   it "rejects a blank answer with a message" do
     sign_in(user)
     get admin_interview_path
