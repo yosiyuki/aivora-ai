@@ -5,7 +5,7 @@ class Evidence < ApplicationRecord
 
   belongs_to :site
   belongs_to :source_item
-  has_many :evidence_links, dependent: :destroy
+  has_many :evidence_links, dependent: :restrict_with_exception
 
   validates :evidence_type, inclusion: { in: TYPES }
   validates :content, presence: true
@@ -20,4 +20,7 @@ class Evidence < ApplicationRecord
   end
 
   def owner? = trust_level == "owner"
+
+  # Once written, evidence is neither edited nor deleted.
+  def readonly? = persisted?
 end

@@ -39,6 +39,11 @@ ja:
           attributes:
             status:
               needs_provenance: を accepted にするには根拠（evidence）が必要です
+              use_accept: を accepted にするには Fact#accept! を使ってください
+        evidence_link:
+          attributes:
+            evidence:
+              other_site: は別のサイトのものです
   sessions:
     title: ログイン
     submit: ログイン

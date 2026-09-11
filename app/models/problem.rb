@@ -1,4 +1,5 @@
 class Problem < ApplicationRecord
+  include Versioned
   include Evidenced
 
   SEVERITIES = %w[low medium high].freeze

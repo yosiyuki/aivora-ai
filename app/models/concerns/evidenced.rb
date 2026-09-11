@@ -11,6 +11,8 @@ module Evidenced
   def provenanced? = evidence_links.exists?
 
   def add_evidence!(evidence, relation: "supports")
+    raise ArgumentError, "evidence belongs to another site" if evidence.site_id != site_id
+
     evidence_links.find_or_create_by!(evidence: evidence, relation_type: relation)
   end
 end

@@ -4,7 +4,9 @@ module Versioned
   extend ActiveSupport::Concern
 
   included do
-    has_many :knowledge_versions, as: :knowledge, dependent: :destroy
+    # Every record has at least one version, so destroy always raises: nothing
+    # versioned is ever physically deleted (README §23).
+    has_many :knowledge_versions, as: :knowledge, dependent: :restrict_with_exception
     attr_accessor :change_reason, :changed_by
 
     after_create { record_version!(reason: change_reason || "created") }

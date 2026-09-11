@@ -24,6 +24,7 @@ class CreateKnowledgeLayer < ActiveRecord::Migration[8.1]
       t.timestamps
     end
     add_index :entities, [ :site_id, :slug ], unique: true
+    add_index :entities, [ :site_id, :entity_type, :canonical_name ], unique: true
 
     create_table :entity_aliases do |t|
       t.references :entity, null: false, foreign_key: true

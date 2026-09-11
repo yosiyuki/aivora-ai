@@ -32,4 +32,26 @@ RSpec.describe Evidence, type: :model do
   it "rejects claim kinds outside the vocabulary" do
     expect(site.claims.build(statement: "x", claim_kind: "rumour")).not_to be_valid
   end
+  it "cannot be linked across sites" do
+    ev = owner_evidence(text: "x")
+    other_site = Site.new(name: "他社", domain: "other.example")
+    other_site.save!(validate: false)
+    experience = other_site.experiences.create!(summary: "y")
+    expect { experience.add_evidence!(ev) }.to raise_error(ArgumentError, /another site/)
+    link = EvidenceLink.new(evidence: ev, knowledge: experience)
+    expect(link).not_to be_valid
+  end
+
+  it "is immutable once written" do
+    ev = owner_evidence(text: "x")
+    expect { ev.update!(content: "y") }.to raise_error(ActiveRecord::ReadOnlyRecord)
+    expect { ev.destroy! }.to raise_error(ActiveRecord::ReadOnlyRecord)
+  end
+
+  it "versions questions and problems like every other knowledge record" do
+    q = site.questions.create!(text: "駐車場はありますか")
+    q.seen_again!
+    expect(q.knowledge_versions.count).to eq(2)
+    expect(site.problems.create!(text: "混む", confidence: 0.5).knowledge_versions.count).to eq(1)
+  end
 end

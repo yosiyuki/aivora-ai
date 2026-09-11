@@ -16,6 +16,7 @@ class Fact < ApplicationRecord
   validates :status, inclusion: { in: STATUSES }
   validates :confidence, numericality: { in: 0.0..1.0 }
   validate :accepted_facts_need_provenance
+  validate :accepted_only_through_accept
 
   before_validation { self.site ||= entity&.site }
   before_validation { self.valid_from ||= Time.current }
@@ -32,7 +33,10 @@ class Fact < ApplicationRecord
       add_evidence!(evidence)
       self.changed_by = changed_by
       self.change_reason = "accepted"
+      @accepting = true
       update!(status: "accepted", last_verified_at: verified_at)
+    ensure
+      @accepting = false
     end
   end
 
@@ -49,6 +53,14 @@ class Fact < ApplicationRecord
   end
 
   private
+
+  # Setting status to accepted any other way skips last_verified_at and the
+  # change reason, so the transition is only valid from inside accept!.
+  def accepted_only_through_accept
+    return unless accepted? && (new_record? || status_changed?)
+
+    errors.add(:status, :use_accept) unless @accepting
+  end
 
   def accepted_facts_need_provenance
     return unless accepted?

@@ -37,6 +37,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_030000) do
     t.string "slug", null: false
     t.string "status", default: "active", null: false
     t.datetime "updated_at", null: false
+    t.index ["site_id", "entity_type", "canonical_name"], name: "index_entities_on_site_id_and_entity_type_and_canonical_name", unique: true
     t.index ["site_id", "slug"], name: "index_entities_on_site_id_and_slug", unique: true
     t.index ["site_id"], name: "index_entities_on_site_id"
   end
