@@ -52,6 +52,20 @@ RSpec.describe Interviewing::Runner do
     expect(interview.reload.question_count).to eq(1)
   end
 
+  it "accepts the same answer text on different turns" do
+    runner.answer!("特にありません")
+    expect { runner.answer!("特にありません") }.not_to raise_error
+    expect(SourceItem.count).to eq(2)
+  end
+
+  it "refuses answers once the interview is completed, even if a turn was already on screen" do
+    shown = runner.current_turn
+    3.times { |i| runner.answer!("答え #{i}") }
+    interview.complete!
+    expect { described_class.new(interview.reload).answer!("遅れて届いた", turn_id: shown.id) }.to raise_error(ArgumentError)
+    expect(runner.current_turn).to be_nil
+  end
+
   it "stops handing out questions at the cap and offers to generate" do
     9.times { |i| runner.answer!("答え #{i}") }
     expect(runner.progress_key).to eq("collecting")

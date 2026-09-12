@@ -14,9 +14,16 @@ module Interviewing
     # The unanswered turn to show; created on demand so a browser that comes
     # back later lands on exactly the same question.
     def current_turn
-      return nil unless interview.in_progress?
+      return nil unless interview.accepting_answers?
 
-      interview.current_turn || build_next_turn
+      interview.turns.reload.detect { |t| !t.answered? } || interview.with_lock do
+        # with_lock reloads the row: re-check under the lock so two concurrent
+        # GETs cannot both insert the same position, and a finished interview
+        # never grows a new question.
+        next nil unless interview.accepting_answers?
+
+        interview.turns.reload.detect { |t| !t.answered? } || build_next_turn
+      end
     end
 
     class StaleTurn < ArgumentError; end
@@ -31,6 +38,9 @@ module Interviewing
       current_turn or raise ArgumentError, "interview is not accepting answers"
       interview.transaction do
         interview.lock!
+        # lock! reloads: a finish that landed while we waited is honoured.
+        raise ArgumentError, "interview is not accepting answers" unless interview.accepting_answers?
+
         turns = interview.turns.reload
         if turn_id
           shown = turns.find { |t| t.id == turn_id.to_i } or raise StaleTurn, "turn #{turn_id} is not part of this interview"
@@ -52,7 +62,7 @@ module Interviewing
       end
     end
 
-    def can_finish? = interview.ready_to_generate? || interview.capped? || interview.turns.count(&:answered?) >= 3
+    def can_finish? = interview.finishable?
     def capped? = interview.capped?
 
     # Progress without naming slots (README §27.7).
