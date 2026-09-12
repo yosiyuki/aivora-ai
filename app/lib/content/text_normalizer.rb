@@ -10,5 +10,16 @@ module Content
       n = normalize(needle)
       n.present? && normalize(haystack).include?(n)
     end
+
+    # Also ignores punctuation: 「豆は、農園から」 and 「豆は農園から」 are the
+    # same words. Used when matching prose against the owner's own words.
+    PUNCT = /[[:punct:]、。，．・「」『』（）()〔〕【】]+/
+
+    def loose(text) = normalize(text).gsub(PUNCT, "")
+
+    def loose_include?(haystack, needle)
+      n = loose(needle)
+      n.present? && loose(haystack).include?(n)
+    end
   end
 end

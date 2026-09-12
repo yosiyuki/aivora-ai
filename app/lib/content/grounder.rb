@@ -56,25 +56,36 @@ module Content
       confidence = claim["confidence"].to_f.clamp(0.0, 1.0)
       base = { statement: statement, kind: kind, confidence: confidence, slot_key: nil, knowledge: nil }
 
-      case kind
-      when "verifiable"
-        fact = @pack.fact_by_ref(ref)
-        if fact && TextNormalizer.include?(statement, fact.value)
-          base.merge(verdict: :grounded, knowledge: [ "Fact", fact.id ])
-        else
-          base.merge(verdict: :blank, slot_key: slot_key_for(claim, fact))
-        end
-      when "experiential"
-        exp = @pack.experience_by_ref(ref)
-        exp ? base.merge(verdict: :grounded, knowledge: [ "Experience", exp.id ]) : base.merge(verdict: :excised)
+      return base.merge(kind: "general", verdict: :general) if kind == "general"
+
+      # A fact reference counts only if the fact's value is in the sentence.
+      fact = @pack.fact_by_ref(ref)
+      if kind == "verifiable" && fact && TextNormalizer.include?(statement, fact.value)
+        return base.merge(verdict: :grounded, knowledge: [ "Fact", fact.id ])
+      end
+
+      # The owner's own words ground a sentence whatever the model called it:
+      # a statement that contains, or is contained in, an experience body.
+      exp = @pack.experience_by_ref(ref) || experience_matching(statement)
+      return base.merge(kind: "experiential", verdict: :grounded, knowledge: [ "Experience", exp.id ]) if exp
+
+      if kind == "verifiable" && (key = slot_key_for(claim, fact))
+        base.merge(verdict: :blank, slot_key: key)
       else
-        base.merge(kind: "general", verdict: :general)
+        base.merge(verdict: :excised)   # nothing to say here: drop the sentence, leave no filler
       end
     end
 
+    def experience_matching(statement)
+      @pack.experiences.find do |e|
+        TextNormalizer.loose_include?(statement, e.body) || TextNormalizer.loose_include?(e.body, statement)
+      end
+    end
+
+    # A blank needs a real slot; without one the sentence is simply removed.
     def slot_key_for(claim, fact)
       key = claim["slot_key"].presence || fact&.attribute_key
-      @pack.slot_keys.include?(key.to_s) ? key.to_s : "unknown"
+      @pack.slot_keys.include?(key.to_s) ? key.to_s : nil
     end
 
     def row_for(d, body)
@@ -122,11 +133,14 @@ module Content
       end.join("\n").gsub(/\n{3,}/, "\n\n").strip
     end
 
-    # Drafter-written placeholders: unknown keys become "unknown"; each key is a blank.
+    # Drafter-written placeholders: known slot keys are blanks; unknown keys are
+    # dropped, since a placeholder nobody can fill is just noise.
     def normalize_placeholders(body)
       blanks = []
       normalized = body.gsub(SLOT) do
-        key = @pack.slot_keys.include?(Regexp.last_match(1)) ? Regexp.last_match(1) : "unknown"
+        key = Regexp.last_match(1)
+        next "" unless @pack.slot_keys.include?(key)
+
         blanks << { "slot_key" => key, "statement" => nil }
         "[[slot:#{key}]]"
       end
