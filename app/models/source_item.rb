@@ -4,7 +4,8 @@ class SourceItem < ApplicationRecord
   belongs_to :source
 
   validates :raw_content, presence: true
-  validates :checksum, presence: true, uniqueness: { scope: :source_id }
+  validates :checksum, presence: true
+  validates :external_id, uniqueness: { scope: :source_id }, allow_nil: true
 
   before_validation { self.checksum ||= Digest::SHA256.hexdigest(raw_content.to_s) }
   before_validation { self.fetched_at ||= Time.current }

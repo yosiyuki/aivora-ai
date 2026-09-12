@@ -1,9 +1,11 @@
 class Question < ApplicationRecord
   include Versioned
   include Evidenced
+  include SameSite
 
   belongs_to :site
   belongs_to :entity, optional: true
+  same_site_as :entity
 
   validates :text, presence: true
   before_validation { self.first_seen_at ||= Time.current }

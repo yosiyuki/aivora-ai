@@ -4,12 +4,14 @@
 class Claim < ApplicationRecord
   include Versioned
   include Evidenced
+  include SameSite
 
   KINDS = %w[verifiable experiential general].freeze
   STATUSES = %w[candidate grounded ungrounded retired].freeze
 
   belongs_to :site
   belongs_to :entity, optional: true
+  same_site_as :entity
 
   validates :statement, presence: true
   validates :claim_kind, inclusion: { in: KINDS }

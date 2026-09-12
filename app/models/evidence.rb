@@ -1,6 +1,8 @@
 # A unit of grounds for knowledge, cut from a raw source item (DatabaseSchema §6).
 # Immutable where possible: never edited, only linked.
 class Evidence < ApplicationRecord
+  include SameSite
+
   TYPES = %w[statement quote document observation].freeze
 
   belongs_to :site
@@ -10,6 +12,7 @@ class Evidence < ApplicationRecord
   validates :evidence_type, inclusion: { in: TYPES }
   validates :content, presence: true
   validates :trust_level, inclusion: { in: Source::TRUST_LEVELS }
+  same_site_as :source_item
 
   before_validation { self.trust_level ||= source_item&.trust_level }
   before_validation { self.observed_at ||= source_item&.fetched_at || Time.current }

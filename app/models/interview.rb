@@ -4,6 +4,9 @@
 class Interview < ApplicationRecord
   STATUSES = %w[in_progress ready completed abandoned].freeze
   QUESTION_CAP = 10
+  MIN_ANSWERS_TO_FINISH = 3
+
+  class NotFinishable < StandardError; end
 
   belongs_to :site
   has_many :turns, -> { order(:position) }, class_name: "InterviewTurn", dependent: :destroy
@@ -31,10 +34,21 @@ class Interview < ApplicationRecord
     update!(slot_state: slot_state.merge(key.to_s => { "value" => value, "source_item_id" => source_item_id, "confidence" => confidence }))
   end
 
+  def answered_count = turns.where.not(answered_at: nil).count
+
+  # Enough to generate from: minimum slots filled, the cap reached, or at
+  # least three answers. Decided here, not in the UI.
+  def finishable? = ready_to_generate? || capped? || answered_count >= MIN_ANSWERS_TO_FINISH
+
   def complete!
     transaction do
+      lock!
+      return self if completed?
+      raise NotFinishable, "interview #{id} has #{answered_count} answers and no filled minimum slots" unless finishable?
+
       update!(status: "completed", completed_at: Time.current)
       site.update!(status: "active") if site.status == "setup"
     end
+    self
   end
 end

@@ -431,8 +431,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_040000) do
     t.text "raw_content", null: false
     t.bigint "source_id", null: false
     t.string "source_url"
-    t.index ["source_id", "checksum"], name: "index_source_items_on_source_id_and_checksum", unique: true
-    t.index ["source_id", "external_id"], name: "index_source_items_on_source_id_and_external_id"
+    t.index ["source_id", "checksum"], name: "index_source_items_on_source_id_and_checksum"
+    t.index ["source_id", "external_id"], name: "index_source_items_on_source_id_and_external_id", unique: true, where: "(external_id IS NOT NULL)"
     t.index ["source_id"], name: "index_source_items_on_source_id"
   end
 

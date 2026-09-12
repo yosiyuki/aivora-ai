@@ -25,7 +25,9 @@ class CreateSourcesAndSourceItems < ActiveRecord::Migration[8.1]
       t.string :checksum, null: false
       t.datetime :created_at, null: false
     end
-    add_index :source_items, [ :source_id, :checksum ], unique: true
-    add_index :source_items, [ :source_id, :external_id ]
+    # Identity is the external id (e.g. one row per interview turn); the checksum
+    # is for change detection only, so the same text may legitimately recur.
+    add_index :source_items, [ :source_id, :external_id ], unique: true, where: "external_id IS NOT NULL"
+    add_index :source_items, [ :source_id, :checksum ]
   end
 end

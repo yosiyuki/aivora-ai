@@ -4,12 +4,14 @@
 class Fact < ApplicationRecord
   include Versioned
   include Evidenced
+  include SameSite
 
   RISK_LEVELS = %w[low medium high].freeze
   STATUSES = %w[candidate accepted stale retired].freeze
 
   belongs_to :site
   belongs_to :entity
+  same_site_as :entity
 
   validates :attribute_key, presence: true
   validates :risk_level, inclusion: { in: RISK_LEVELS }

@@ -45,9 +45,21 @@ RSpec.describe "Admin interview", type: :request do
     expect(flash[:alert]).to eq(I18n.t("interview.blank_answer"))
   end
 
-  it "finishes and sends the user to the dashboard" do
+  it "refuses to finish before three answers, even by direct POST" do
     sign_in(user)
     get admin_interview_path
+    post finish_admin_interview_path
+    expect(response).to redirect_to(admin_interview_path)
+    expect(flash[:alert]).to eq(I18n.t("interview.not_finishable"))
+    expect(site.reload.status).to eq("setup")
+  end
+
+  it "finishes and sends the user to the dashboard" do
+    sign_in(user)
+    3.times do
+      get admin_interview_path
+      post answer_admin_interview_path, params: { answer: "自由記述の答え", turn_id: site.current_interview.current_turn.id }
+    end
     post finish_admin_interview_path
     expect(response).to redirect_to(admin_root_path)
     expect(site.current_interview).to be_completed

@@ -36,6 +36,8 @@ RSpec.describe Entity, type: :model do
     rejected.reject!
     expect { rejected.promote! }.to raise_error(ArgumentError, /rejected/)
     expect(rejected.reload.status).to eq("rejected")
+    expect { candidate.reject! }.to raise_error(ArgumentError, /accepted/), "terminal states do not flip"
+    expect(candidate.reload.status).to eq("accepted")
   end
 
   it "enforces one entity per (site, type, name) at the database" do

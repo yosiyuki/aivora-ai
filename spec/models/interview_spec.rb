@@ -28,10 +28,19 @@ RSpec.describe Interview, type: :model do
     expect(interview).to be_capped
   end
 
-  it "activates the site on completion" do
+  it "cannot be completed before there is anything to generate from" do
+    expect { interview.complete! }.to raise_error(Interview::NotFinishable)
+    expect(interview.reload).not_to be_completed
+    expect(site.reload.status).to eq("setup")
+  end
+
+  it "activates the site on completion once three answers exist" do
+    runner = Interviewing::Runner.new(interview)
+    3.times { |i| runner.answer!("答え #{i}") }
     interview.complete!
     expect(interview).to be_completed
     expect(site.reload.status).to eq("active")
+    expect(interview.complete!).to eq(interview), "completing twice is a no-op"
   end
   it "has exactly one owner-trusted interview source per site, whatever state it is found in" do
     a = Source.interview_for(site)
