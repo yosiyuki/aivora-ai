@@ -12,36 +12,47 @@ module Content
       @pack = pack
     end
 
+    # Fail-closed: every heading, list item and sentence must be accounted for
+    # by a grounded/general claim, a placeholder line, or a structural heading.
+    # Anything the extractor did not cover is removed; an uncovered or
+    # ungrounded heading fails the version.
     def ground(body:, claims:)
       notes = []
-      body, placeholder_blanks = normalize_placeholders(body)   # the drafter's own [[slot:*]]
+      body, placeholder_blanks, placeholder_failure = normalize_placeholders(body)
       sentences = split(body)
-      decisions = claims.map { |c| decide(c) }
       claim_rows = []
+      covered = Hash.new { |h, k| h[k] = [] }
 
-      decisions.each do |d|
+      claims.map { |c| decide(c) }.each do |d|
         idx = locate(sentences, d[:statement])
         unless idx
           notes << "claim not found in body: #{d[:statement].first(40)}"
           next
         end
-        if d[:verdict] == :blank || d[:verdict] == :excised
+        d = d.merge(kind: "general", verdict: :general, knowledge: nil, slot_key: nil) if sentences[idx].kind == :heading && structural_heading?(sentences[idx].text)
+        covered[idx] << d[:verdict]
+        if %i[blank excised].include?(d[:verdict])
           sentences[idx].remove = true
           sentences[idx].slot_key = d[:slot_key] if d[:verdict] == :blank && d[:slot_key]
         end
         claim_rows << row_for(d, body)
       end
 
-      structural_failure = sentences.any? { |s| s.remove && s.kind == :heading }
+      sentences.each_with_index do |s, i|
+        next if s.kind == :blank_line || covered.key?(i) || placeholder_line?(s)
+        next if s.kind == :heading && structural_heading?(s.text)
+
+        s.remove = true
+        notes << "uncovered #{s.kind} removed: #{s.text.strip.first(40)}"
+      end
+
+      structural_failure = placeholder_failure || sentences.any? { |s| s.remove && s.kind == :heading }
       new_body = rebuild(sentences)
       blanks = claim_rows.select { |r| r[:review_status] == "blank" }.map { |r| { "slot_key" => r[:slot_key], "statement" => r[:statement] } }
       blanks.concat(placeholder_blanks)
 
-      status = if structural_failure then :failed
-      elsif new_body.blank? then :failed
-      else :passed
-      end
-      notes << "heading contained an ungrounded claim" if structural_failure
+      status = structural_failure || new_body.blank? ? :failed : :passed
+      notes << "heading contained an ungrounded or uncovered claim" if structural_failure
       Result.new(body: new_body, claims: claim_rows, blanks: blanks.uniq, status: status, notes: notes)
     end
 
@@ -56,17 +67,24 @@ module Content
       confidence = claim["confidence"].to_f.clamp(0.0, 1.0)
       base = { statement: statement, kind: kind, confidence: confidence, slot_key: nil, knowledge: nil }
 
+      # "general" is only trusted for text with nothing site-specific in it;
+      # anything with numbers or shop-specific words is judged as verifiable.
+      if kind == "general" && specific?(statement)
+        kind = "verifiable"
+        base[:kind] = kind
+      end
       return base.merge(kind: "general", verdict: :general) if kind == "general"
 
-      # A fact reference counts only if the fact's value is in the sentence.
+      # A fact reference counts only if the fact's value is in the sentence and
+      # the sentence adds no numbers the pack does not know.
       fact = @pack.fact_by_ref(ref)
-      if kind == "verifiable" && fact && TextNormalizer.include?(statement, fact.value)
+      if kind == "verifiable" && fact && fact_supports?(fact, statement)
         return base.merge(verdict: :grounded, knowledge: [ "Fact", fact.id ])
       end
 
-      # The owner's own words ground a sentence whatever the model called it:
-      # a statement that contains, or is contained in, an experience body.
-      exp = @pack.experience_by_ref(ref) || experience_matching(statement)
+      # The owner's own words ground a sentence whatever the model called it,
+      # but a reference alone never does: the text has to match.
+      exp = experience_covering(statement, preferred: @pack.experience_by_ref(ref))
       return base.merge(kind: "experiential", verdict: :grounded, knowledge: [ "Experience", exp.id ]) if exp
 
       if kind == "verifiable" && (key = slot_key_for(claim, fact))
@@ -76,10 +94,30 @@ module Content
       end
     end
 
-    def experience_matching(statement)
-      @pack.experiences.find do |e|
-        TextNormalizer.loose_include?(statement, e.body) || TextNormalizer.loose_include?(e.body, statement)
-      end
+    SPECIFIC = /[0-9０-９]|円|時から|時まで|分間|km|メートル|価格|料金|住所|駅|徒歩|No\.?\s?1|一番|最高|唯一|世界一|日本一/i
+
+    def specific?(statement)
+      statement.match?(SPECIFIC) || (@pack.entity && TextNormalizer.loose_include?(statement, @pack.entity.canonical_name))
+    end
+
+    # The fact's value must occur; every number in the sentence must come from
+    # some fact in the pack; short or numeric values also need their slot label.
+    def fact_supports?(fact, statement)
+      return false unless TextNormalizer.include?(statement, fact.value)
+
+      known_digits = @pack.facts.flat_map { |f| TextNormalizer.loose(f.value).scan(TextNormalizer::DIGITS) }
+      return false if (TextNormalizer.loose(statement).scan(TextNormalizer::DIGITS) - known_digits).any?
+
+      value = TextNormalizer.loose(fact.value)
+      return true if value.length >= 2 && !value.match?(/\A[0-9]+\z/)
+
+      label = @pack.slot_label(fact.attribute_key)
+      label.present? && TextNormalizer.loose_include?(statement, label)
+    end
+
+    def experience_covering(statement, preferred: nil)
+      candidates = [ preferred, *@pack.experiences ].compact.uniq
+      candidates.find { |e| TextNormalizer.covers?(e.body, statement) }
     end
 
     # A blank needs a real slot; without one the sentence is simply removed.
@@ -120,6 +158,17 @@ module Content
       end
     end
 
+    # A short heading with no numbers is a label ("どんなお店か"), not a claim.
+    def structural_heading?(text)
+      t = text.sub(/\A\s*#+\s*/, "").strip
+      t.length <= 20 && !t.match?(SPECIFIC) && !t.match?(SLOT)
+    end
+
+    def placeholder_line?(sentence)
+      stripped = sentence.text.gsub(SLOT, "").gsub(/[[:space:][:punct:]、。：:]/, "")
+      sentence.text.match?(SLOT) && stripped.length <= 12   # "営業時間: [[slot:hours]]" style lines
+    end
+
     def rebuild(sentences)
       sentences.group_by(&:para).sort.map do |_, group|
         parts = group.map do |s|
@@ -133,18 +182,26 @@ module Content
       end.join("\n").gsub(/\n{3,}/, "\n\n").strip
     end
 
-    # Drafter-written placeholders: known slot keys are blanks; unknown keys are
-    # dropped, since a placeholder nobody can fill is just noise.
+    # Drafter-written placeholders: known slot keys are blanks and may appear
+    # only in body text. A line carrying an unknown key is removed whole; any
+    # placeholder in a heading fails the version.
     def normalize_placeholders(body)
       blanks = []
-      normalized = body.gsub(SLOT) do
-        key = Regexp.last_match(1)
-        next "" unless @pack.slot_keys.include?(key)
+      failure = false
+      lines = body.to_s.lines.filter_map do |line|
+        keys = line.scan(SLOT).flatten
+        next line if keys.empty?
 
-        blanks << { "slot_key" => key, "statement" => nil }
-        "[[slot:#{key}]]"
+        if line.strip.start_with?("#")
+          failure = true
+          next line
+        end
+        next nil if keys.any? { |k| !@pack.slot_keys.include?(k) }   # unknown key: drop the line
+
+        keys.uniq.each { |k| blanks << { "slot_key" => k, "statement" => nil } }
+        line
       end
-      [ normalized, blanks.uniq ]
+      [ lines.join, blanks.uniq, failure ]
     end
   end
 end

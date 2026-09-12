@@ -41,7 +41,7 @@ module Content
       lines << "## 主語"
       lines << (entity ? "#{entity.canonical_name}（#{entity.entity_type}）" : site.name)
       lines << "\n## 事実（F）"
-      lines.concat(facts.map { |f| "#{f.ref}: #{f.attribute_key} = #{f.value}" }.presence || [ "（まだありません）" ])
+      lines.concat(facts.map { |f| "#{f.ref}: #{f.entity_name} の #{slot_label(f.attribute_key) || f.attribute_key} = #{f.value}" }.presence || [ "（まだありません）" ])
       lines << "\n## 体験・こだわり（E）"
       lines.concat(experiences.flat_map { |e| [ "#{e.ref}: #{e.summary}", "  本人の言葉: 「#{e.body}」" ] }.presence || [ "（まだありません）" ])
       lines << "\n## 目的（参考。事実ではない）"
@@ -53,10 +53,15 @@ module Content
 
     private
 
+    # Facts about the page's subject only (the primary entity when there is
+    # one), ordered by slot weight so truncation drops the least important.
     def build_facts
-      scope = ::Fact.current.where(site: site).includes(:entity).order(:id)
-      rows = scope.limit(LIMITS[:facts]).to_a
-      @truncated = true if scope.count > rows.size
+      scope = ::Fact.current.where(site: site).includes(:entity)
+      scope = scope.where(entity_id: entity.id) if entity
+      weights = site.required_slots.to_h { |s| [ s.key, s.weight ] }
+      ordered = scope.to_a.sort_by { |f| [ -(weights[f.attribute_key] || 0), -f.last_verified_at.to_i, f.id ] }
+      rows = ordered.first(LIMITS[:facts])
+      @truncated = true if ordered.size > rows.size
       @facts_by_ref = {}
       rows.each_with_index.map do |fact, i|
         FactRef.new(ref: "F#{i + 1}", id: fact.id, attribute_key: fact.attribute_key, value: fact.value.to_s,
@@ -65,8 +70,10 @@ module Content
     end
 
     def build_experiences
-      rows = site.experiences.order(:created_at).limit(LIMITS[:experiences]).to_a
-      @truncated = true if site.experiences.count > rows.size
+      scope = site.experiences.order(:created_at)
+      scope = scope.where(entity_id: [ entity.id, nil ]) if entity   # the subject's, or unattributed owner words
+      rows = scope.limit(LIMITS[:experiences]).to_a
+      @truncated = true if scope.count > rows.size
       @experiences_by_ref = {}
       budget = LIMITS[:body_chars]
       rows.each_with_index.filter_map do |exp, i|

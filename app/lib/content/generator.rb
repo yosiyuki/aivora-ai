@@ -20,10 +20,11 @@ module Content
           i.archetype_page_type = @page_type
           i.content_type = "page"
         end
-        version = item.versions.create!(
+        # Created pending, claims written, then decided: after decide! the
+        # version and its claims are frozen.
+        version = item.append_version!(
           title: draft.title, body: result.body,
           source: item.versions.exists? ? "regenerated" : "generated",
-          grounding_status: result.status.to_s,
           metadata: {
             "pack" => { "facts" => pack.facts.map(&:id), "experiences" => pack.experiences.map(&:id), "truncated" => pack.truncated },
             "blanks" => result.blanks, "notes" => result.notes,
@@ -31,6 +32,7 @@ module Content
           }
         )
         result.claims.each { |attrs| version.claims.create!(attrs) }
+        version.decide!(result.status)
         item.publish!(version) if result.status == :passed
         version
       end
