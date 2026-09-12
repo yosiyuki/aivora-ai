@@ -1,0 +1,10 @@
+archetype: knowledge_base
+label: 質問に答える・まとめる
+default_metric: self_service_rate
+page_structure: [top, topics, question]
+slots:
+  - { key: name,      label: 名前・サイト名,   level: minimum,  kind: verifiable,   weight: 0.8 }
+  - { key: topic,     label: 何についてか,     level: minimum,  kind: experiential, weight: 1.0 }
+  - { key: audience,  label: 誰の疑問に答えるか, level: minimum, kind: experiential, weight: 0.9 }
+  - { key: sources,   label: 根拠にするもの,   level: standard, kind: verifiable,   weight: 0.8 }
+  - { key: scope,     label: 扱わないこと,     level: enriched, kind: experiential, weight: 0.4 }

@@ -211,9 +211,13 @@ goal interview   → archetype → page structure + required knowledge slots
 ```
 
 - The user never sees the word "archetype" — same rule as ontology and entity schema (§27).
-- `archetype_definitions` is a **product-fixed master table**. The LLM only classifies which archetype a
-  goal implies; it never authors `page_structure`, `required_slots`, or `priority_weights`. Same reasoning
-  as product-fixed editorial prohibitions.
+- Archetype definitions are **product-fixed YAML** (`config/archetypes/*.yml`, read through
+  `ArchetypeDefinition.find(:business)`), not a table — a master in the DB would compete with the
+  repository for truth. The LLM only classifies which archetype a goal implies; it never authors
+  `page_structure`, slots, or weights. Same reasoning as product-fixed editorial prohibitions.
+- Slots carry `level` (`minimum` is asked in the interview; `standard` / `enriched` become Verification
+  Requests), `kind` (`verifiable` / `experiential`, the Claim vocabulary) and `weight`.
+  `Site#required_slots(level:)` unions the active archetypes, keeping the higher weight for shared keys.
 - Archetypes compose (`site_archetypes`, `is_primary`) — "shop info + blog" is the common case, not an
   edge case.
 - **Required slots drive Verification Requests, and their priority is archetype-dependent.** A missing

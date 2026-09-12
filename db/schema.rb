@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_10_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_10_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -41,6 +41,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_000000) do
     t.string "user_agent"
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "site_archetypes", force: :cascade do |t|
+    t.datetime "activated_at", null: false
+    t.string "archetype", null: false
+    t.datetime "created_at", null: false
+    t.boolean "is_primary", default: false, null: false
+    t.bigint "site_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["site_id", "archetype"], name: "index_site_archetypes_on_site_id_and_archetype", unique: true
+    t.index ["site_id"], name: "index_site_archetypes_on_site_id"
+    t.index ["site_id"], name: "index_site_archetypes_one_primary_per_site", unique: true, where: "is_primary"
   end
 
   create_table "sites", force: :cascade do |t|
@@ -216,6 +228,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_000000) do
 
   add_foreign_key "llm_usage", "sites"
   add_foreign_key "sessions", "users"
+  add_foreign_key "site_archetypes", "sites"
   add_foreign_key "solid_queue_batch_executions", "solid_queue_batches", column: "batch_id", on_delete: :cascade
   add_foreign_key "solid_queue_batch_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

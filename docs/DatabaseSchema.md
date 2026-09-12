@@ -1030,15 +1030,25 @@ DBへ平文Secretを保存しない。
 
 Archetype ごとの構造定義。**製品が保持する固定マスタ。**
 
+**v2.0 実装時の変更: DB テーブルではなく `config/archetypes/*.yml` に置く。**
+製品固定のマスタを DB に持つと「YAML と DB のどちらが正か」という同期問題が生まれる。
+LLM に構造を生成させない（下記）以上、リポジトリのファイルが唯一の正でよい。
+アプリからは `ArchetypeDefinition.find(:business)` で読み取り専用に参照する。
+
 ```text
-archetype_definitions
+config/archetypes/<archetype>.yml
 - archetype           # business / media / knowledge_base / portfolio
+- label
+- default_metric      # goals.metric の既定値（LLM に数値目標を作らせない）
 - page_structure      # 生成すべきページ種別
-- required_slots      # 必須Knowledgeスロット（充足レベル付き）
-- priority_weights    # スロットの優先度
+- slots[]
+  - key / label
+  - level             # minimum / standard / enriched
+  - kind              # verifiable / experiential（Claim 分類と同じ語彙）
+  - weight            # Knowledge Health の重み（0..1）
 ```
 
-`required_slots` は充足レベルを持つ。
+`level` は充足のタイミングを決める。
 
 ```text
 minimum    最初の1本に必要   → 初期設定のヒアリングで聞く
@@ -1046,27 +1056,27 @@ standard   サイトとして必要   → Verification Request
 enriched   あると良い        → Verification Request
 ```
 
-初期設定では minimum のみを充足させ、残りは非同期に収集する。
-
 例:
 
 ```text
 business
-  page_structure  Top / サービス / FAQ / お知らせ
-  required_slots  場所 / 営業時間 / 提供内容 / 連絡手段
-  priority        高（欠けると目的を達成できない）
+  page_structure  top / services / faq / news
+  minimum         name / what / location
+  standard        hours / contact / offerings
 
 media
-  page_structure  Top / 記事一覧 / カテゴリ / 記事
-  required_slots  トピック / 対象読者
-  priority        営業時間等は低（目的に影響しない）
+  page_structure  top / articles / categories / article
+  minimum         name / topic / audience
+  （hours を持たない。営業時間は目的に影響しないため）
 ```
 
 **AIが行うのは「目的からどのArchetypeか」の判定のみ**であり、
 構造そのものを生成させない。Editorial Policy を製品固定とするのと同じ理由による。
 
 `required_slots` の充足状況が Verification Request の生成元となり、
-`priority_weights` が Knowledge Health の算出に用いられる。
+`priority_weights`（= `weight`）が Knowledge Health の算出に用いられる。
+複合型では `Site#required_slots` が全 Archetype のスロットの和集合を返し、
+同じ key は重みの大きい方を採る。
 
 ## 66. site_archetypes
 
@@ -1076,9 +1086,11 @@ media
 site_archetypes
 - id
 - site_id
-- archetype
-- is_primary
+- archetype           # config/archetypes に定義があること
+- is_primary          # サイトごとに 1 行のみ（partial unique index）
 - activated_at
+- created_at
+- updated_at
 ```
 
 「店舗紹介 + ブログ」のように複数の目的を持つ場合、
@@ -1284,9 +1296,9 @@ site_policies
 capability_autonomy
 memories
 
-archetype_definitions
 site_archetypes
 llm_usage
+（archetype_definitions は YAML マスタ。テーブルは持たない）
 ```
 
 **v1.0 からの変更:**
@@ -1301,7 +1313,7 @@ llm_usage
   → 運用期（データ蓄積後）に有効化する機能のため
 
 新規:
-  archetype_definitions / site_archetypes / llm_usage
+  site_archetypes / llm_usage（archetype_definitions は config/archetypes/*.yml）
 ```
 
 ## 76. 運用期 — Progressive Activation
