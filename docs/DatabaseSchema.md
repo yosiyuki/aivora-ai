@@ -1110,9 +1110,13 @@ llm_usage
 - model
 - input_tokens
 - output_tokens
-- estimated_cost
+- cache_read_input_tokens
+- cache_creation_input_tokens
+- estimated_cost      # config/llm_pricing.yml から算出
 - related_type        # 何のための呼び出しか
 - related_id
+- succeeded           # 失敗した呼び出しも記録する
+- metadata            # 失敗理由（refusal / max_tokens / エラー種別）
 - created_at
 ```
 
