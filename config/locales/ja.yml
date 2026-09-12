@@ -7,6 +7,9 @@ ja:
     site_name: サイト名
     domain: ドメイン
   activerecord:
+    errors:
+      messages:
+        other_site: は別のサイトのものです
     attributes:
       user:
         name: お名前
@@ -35,6 +38,15 @@ ja:
           attributes:
             examples:
               three_examples: は 3 つ必要です
+        fact:
+          attributes:
+            status:
+              needs_provenance: を accepted にするには根拠（evidence）が必要です
+              use_accept: を accepted にするには Fact#accept! を使ってください
+        evidence_link:
+          attributes:
+            evidence:
+              other_site: は別のサイトのものです
   sessions:
     title: ログイン
     submit: ログイン

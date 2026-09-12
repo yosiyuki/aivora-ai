@@ -14,3 +14,8 @@
 # ActiveSupport::Inflector.inflections(:en) do |inflect|
 #   inflect.acronym "RESTful"
 # end
+
+ActiveSupport::Inflector.inflections(:en) do |inflect|
+  # The Evidence model maps to the `evidence` table (DatabaseSchema §6).
+  inflect.uncountable "evidence"
+end

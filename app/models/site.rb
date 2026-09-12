@@ -18,6 +18,14 @@ class Site < ApplicationRecord
   has_many :site_archetypes, dependent: :destroy
   has_many :sources, dependent: :destroy
   has_many :interviews, dependent: :destroy
+  has_many :entities, dependent: :restrict_with_exception
+  has_many :entity_candidates, dependent: :restrict_with_exception
+  has_many :facts, dependent: :restrict_with_exception
+  has_many :claims, dependent: :restrict_with_exception
+  has_many :experiences, dependent: :restrict_with_exception
+  has_many :questions, dependent: :restrict_with_exception
+  has_many :problems, dependent: :restrict_with_exception
+  has_many :evidence, dependent: :restrict_with_exception
 
   def current_interview = interviews.order(:created_at).last
   def interview_pending? = current_interview.nil? || !current_interview.completed?

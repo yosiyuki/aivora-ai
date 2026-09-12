@@ -255,7 +255,7 @@ facts
 - id
 - site_id
 - entity_id
-- attribute
+- attribute_key      # 実装では attribute_key（`attribute` は ActiveRecord の予約名）
 - value_json
 - unit
 - confidence
@@ -359,10 +359,11 @@ experiences
 - id
 - site_id
 - entity_id
-- person_id
+- person_id          # 識別子の文字列（users への FK ではない）
 - location
 - experienced_at
 - summary
+- body               # 本人の言葉そのもの。Experiential Claim の出典（v2.0 実装時に追加）
 - metadata
 - created_at
 ```
@@ -1217,7 +1218,7 @@ Secrets are not stored in plaintext
 ## 70. Indexing Strategy
 
 ```text
-facts(entity_id, attribute)
+facts(entity_id, attribute_key)
 facts(last_verified_at)
 
 evidence(source_item_id)
