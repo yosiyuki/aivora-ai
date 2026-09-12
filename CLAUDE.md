@@ -138,6 +138,29 @@ Facts carry `valid_from` / `valid_until` /
 **Multi-tenancy by `site_id`.** Phase 1 is `1 deployment = 1 customer = 1 site`, but the column stays on
 every table — dropping it is the one irreversible version of that decision.
 
+## Calling the LLM
+
+`Llm::Client` is the only path to an LLM. Never instantiate the Anthropic SDK elsewhere.
+
+```ruby
+Llm::Client.for(:extraction).extract(system:, input:, schema:)   # => Hash, structured output
+Llm::Client.for(:drafting).generate(system:, messages:)          # => String
+```
+
+- **Operations and models come from `config/llm.yml`** (Model Routing, §37). Phase 1 defaults every
+  operation to `claude-opus-5`; lowering extraction to a smaller model is a decision for `llm_usage` data
+  (#7), not for a Gemfile-time guess.
+- **Extraction can never receive tools.** The adapter interface (`complete(model:, max_tokens:, effort:,
+  system:, messages:, schema:)`) has no tools parameter. That is how Agent Isolation (§7) is enforced —
+  do not add one. Untrusted text goes in the user turn, never in `system`.
+- **Every call writes one `llm_usage` row**, including refusals, truncation, and transport errors
+  (`succeeded: false` with the reason in `metadata`). Cost comes from `config/llm_pricing.yml`.
+- `stop_reason` is always checked: `refusal` raises `Llm::RefusedError`, `max_tokens` raises
+  `Llm::TruncatedError`. Structured output from either is unusable.
+- Tests use `Llm::Fake` (`config/llm.yml` sets `adapter: fake` for test). Register a response with
+  `Llm::Fake.respond(:extraction) { |call| {...} }`; an unregistered call raises. `Llm::Fake.calls` records
+  what was sent. Specs tagged `:live` hit the real API only with `LIVE_LLM=1` and `LLM_API_KEY`.
+
 ## Cost is the throttle
 
 Generation volume is bounded by **LLM API cost**, not by article counts or Fact volume

@@ -28,6 +28,8 @@ module Admin
     def finish
       @interview.complete!
       redirect_to admin_root_path, notice: t("interview.completed")
+    rescue Interview::NotFinishable
+      redirect_to admin_interview_path, alert: t("interview.not_finishable")
     end
 
     private

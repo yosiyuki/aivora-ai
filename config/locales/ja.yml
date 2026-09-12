@@ -82,6 +82,7 @@ ja:
     later: あとで続ける
     blank_answer: 何か書いてから送ってください。
     stale_turn: 画面が古くなっていたので、いまの質問を表示しました。もう一度お願いします。
+    not_finishable: もう少しだけ教えてください。あと数問で最初のページが作れます。
     completed: ヒアリングを終えました。ここからはこちらで進めます。
     already_completed: ヒアリングは完了しています。
     nothing_to_ask: 聞くことはもうありません。
