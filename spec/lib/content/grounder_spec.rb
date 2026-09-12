@@ -136,9 +136,9 @@ RSpec.describe Content::Grounder do
 
   # --- placeholders --------------------------------------------------------
 
-  it "drops a whole line carrying an unknown placeholder key and collapses repeats" do
-    result = grounder.ground(body: "駐車場は [[slot:parking]] です。\n営業時間: [[slot:hours]] と [[slot:hours]]", claims: [])
-    expect(result.body).to eq("営業時間: [[slot:hours]] と")
+  it "drops a whole line carrying an unknown placeholder key and collapses repeats across the body" do
+    result = grounder.ground(body: "駐車場は [[slot:parking]] です。\n営業時間: [[slot:hours]] と [[slot:hours]]\n\n再掲: [[slot:hours]]", claims: [])
+    expect(result.body).to eq("営業時間: [[slot:hours]] と\n\n再掲:")
     expect(result.blanks.map { |b| b["slot_key"] }).to eq([ "hours" ])
     expect(result.status).to eq(:passed)
   end

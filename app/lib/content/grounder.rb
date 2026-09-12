@@ -188,16 +188,16 @@ module Content
       end
     end
 
+    # A slot that already appears earlier in the body is not repeated: one
+    # blank per missing fact is enough for the reader and for verification.
     def rebuild(sentences)
+      seen = []
       sentences.group_by(&:para).sort.map do |_, group|
         parts = group.map do |s|
           next s.text unless s.remove
           s.slot_key ? "[[slot:#{s.slot_key}]]" : ""
         end
-        line = parts.join
-        # collapse a slot repeated within one paragraph
-        seen = []
-        line.gsub(SLOT) { |m| seen.include?(m) ? "" : (seen << m; m) }.gsub(/[ \t]{2,}/, " ").rstrip
+        parts.join.gsub(SLOT) { |m| seen.include?(m) ? "" : (seen << m; m) }.gsub(/[ \t]{2,}/, " ").rstrip
       end.join("\n").gsub(/\n{3,}/, "\n\n").strip
     end
 
