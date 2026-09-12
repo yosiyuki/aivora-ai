@@ -38,6 +38,18 @@ ja:
           attributes:
             examples:
               three_examples: は 3 つ必要です
+        content_item:
+          attributes:
+            url:
+              immutable: は発行後に変更できません
+              invalid_path: は / で始まる小文字英数字とハイフンのパスにしてください
+            published_version:
+              other_item: は別のページの版です
+              not_grounded: は根拠の検証を通過していません
+        content_claim:
+          attributes:
+            knowledge:
+              required: は grounded な主張に必須です
         fact:
           attributes:
             status:

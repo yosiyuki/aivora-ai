@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_10_040000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_12_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -25,6 +25,55 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_040000) do
     t.datetime "updated_at", null: false
     t.index ["entity_id"], name: "index_claims_on_entity_id"
     t.index ["site_id"], name: "index_claims_on_site_id"
+  end
+
+  create_table "content_claims", force: :cascade do |t|
+    t.string "claim_kind", null: false
+    t.float "confidence", default: 0.0, null: false
+    t.bigint "content_version_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "end_offset"
+    t.boolean "grounded", default: false, null: false
+    t.bigint "knowledge_id"
+    t.string "knowledge_type"
+    t.string "review_status", null: false
+    t.string "slot_key"
+    t.integer "start_offset"
+    t.text "statement", null: false
+    t.index ["content_version_id", "review_status"], name: "index_content_claims_on_content_version_id_and_review_status"
+    t.index ["content_version_id"], name: "index_content_claims_on_content_version_id"
+    t.index ["knowledge_type", "knowledge_id"], name: "index_content_claims_on_knowledge_type_and_knowledge_id"
+  end
+
+  create_table "content_items", force: :cascade do |t|
+    t.string "archetype_page_type", null: false
+    t.string "canonical_url"
+    t.string "content_type", default: "page", null: false
+    t.datetime "created_at", null: false
+    t.string "language", null: false
+    t.datetime "published_at"
+    t.bigint "published_version_id"
+    t.bigint "site_id", null: false
+    t.string "status", default: "draft", null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.string "url", null: false
+    t.index ["site_id", "archetype_page_type"], name: "index_content_items_on_site_id_and_archetype_page_type"
+    t.index ["site_id", "url"], name: "index_content_items_on_site_id_and_url", unique: true
+    t.index ["site_id"], name: "index_content_items_on_site_id"
+  end
+
+  create_table "content_versions", force: :cascade do |t|
+    t.text "body", null: false
+    t.bigint "content_item_id", null: false
+    t.datetime "created_at", null: false
+    t.string "grounding_status", default: "pending", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.string "source", default: "generated", null: false
+    t.string "title"
+    t.integer "version", null: false
+    t.index ["content_item_id", "version"], name: "index_content_versions_on_content_item_id_and_version", unique: true
+    t.index ["content_item_id"], name: "index_content_versions_on_content_item_id"
   end
 
   create_table "entities", force: :cascade do |t|
@@ -462,6 +511,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_040000) do
 
   add_foreign_key "claims", "entities"
   add_foreign_key "claims", "sites"
+  add_foreign_key "content_claims", "content_versions"
+  add_foreign_key "content_items", "content_versions", column: "published_version_id"
+  add_foreign_key "content_items", "sites"
+  add_foreign_key "content_versions", "content_items"
   add_foreign_key "entities", "sites"
   add_foreign_key "entity_aliases", "entities"
   add_foreign_key "entity_candidates", "entities", column: "proposed_entity_id"
