@@ -1,4 +1,7 @@
 ja:
+  time:
+    formats:
+      short: "%Y/%m/%d %H:%M"
   attributes:
     name: お名前
     email_address: メールアドレス
@@ -84,7 +87,39 @@ ja:
       title: ダッシュボード
       interview_pending: あなたのことを少し教えてください。それだけで最初のページが作れます。
       continue_interview: ヒアリングを続ける
-      next_step: ヒアリングは完了しています。次は最初の記事の生成です（近日追加）。
+      generating: 最初のページを作成中です。少し時間がかかります。
+      published: 最初のページを公開しました。
+      view_page: ページを見る
+      generation_failed: ページを作れませんでした。もう一度お試しください。
+  content:
+    title: ページ
+    none_yet: まだページはありません。
+    columns:
+      title: タイトル
+      url: URL
+      status: 状態
+      blanks: 確認中の箇所
+    status:
+      draft: 下書き
+      generating: 作成中
+      published: 公開中
+      unpublished: 非公開
+    grounding:
+      pending: 確認中
+      passed: 根拠を確認済み
+      failed: 作れませんでした
+    published_mark: 公開中の版
+    regenerate: もう一度作る
+    regenerate_queued: 作り直しています。少し時間がかかります。
+    already_generating: いま作成中です。
+    blanks_heading:
+      one: "あと %{count} か所、あとで教えてください"
+      other: "あと %{count} か所、あとで教えてください"
+    blanks_lead: 分からなかったことは推測で書かず、空けてあります。
+    unknown_blank: その他
+    preview_heading: 公開中の内容
+    not_published_yet: まだ公開できる版がありません。
+    versions_heading: 履歴
   interview:
     title: ヒアリング
     examples_label: 答え方の例

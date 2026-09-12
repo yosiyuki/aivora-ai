@@ -4,6 +4,7 @@ module Admin
   class DashboardController < ApplicationController
     def show
       @site = Current.site
+      @top_page = @site.top_page
     end
   end
 end

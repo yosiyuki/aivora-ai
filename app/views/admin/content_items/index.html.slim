@@ -1,0 +1,21 @@
+- content_for :title, t("content.title")
+section.card
+  h1 = t("content.title")
+  - if @items.empty?
+    p.lead = t("content.none_yet")
+  - else
+    table.list
+      thead
+        tr
+          th = t("content.columns.title")
+          th = t("content.columns.url")
+          th = t("content.columns.status")
+          th = t("content.columns.blanks")
+      tbody
+        - @items.each do |item|
+          - version = item.published_version || item.latest_version
+          tr
+            td = link_to (item.title.presence || item.archetype_page_type), admin_content_item_path(item)
+            td code = item.url
+            td = t("content.status.#{item.status}")
+            td = version ? version.blank_slot_keys.size : 0

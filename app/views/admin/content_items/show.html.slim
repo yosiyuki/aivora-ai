@@ -1,0 +1,40 @@
+- content_for :title, @item.title.presence || t("content.title")
+section.card
+  p.step = t("content.status.#{@item.status}")
+  h1 = @item.title.presence || @item.archetype_page_type
+  p
+    code = @item.url
+  - unless @item.generating?
+    = button_to t("content.regenerate"), regenerate_admin_content_item_path(@item), method: :post, class: "secondary"
+
+  - if @blank_labels.any?
+    section.blanks
+      h2 = t("content.blanks_heading", count: @blank_labels.size)
+      p.lead = t("content.blanks_lead")
+      ul
+        - @blank_labels.each do |label|
+          li = label
+
+  - if @published
+    section.preview
+      h2 = t("content.preview_heading")
+      article.page-preview = Content::Renderer.render(@published.body)
+  - else
+    p.lead = t("content.not_published_yet")
+
+  section.versions
+    h2 = t("content.versions_heading")
+    ul
+      - @versions.each do |v|
+        li
+          strong = "v#{v.version}"
+          |  ·
+          = t("content.grounding.#{v.grounding_status}")
+          |  ·
+          = l(v.created_at, format: :short)
+          - if v == @published
+            |  ·
+            = t("content.published_mark")
+          - if v.metadata["error"]
+            br
+            small.error = v.metadata.dig("error", "message")
