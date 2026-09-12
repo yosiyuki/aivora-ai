@@ -14,11 +14,21 @@ class ContentVersion < ApplicationRecord
   validates :source, inclusion: { in: SOURCES }
 
   before_validation { self.version ||= content_item&.next_version_number }
+  before_destroy { raise ActiveRecord::RecordNotDestroyed.new("content versions are never physically deleted", self) }
 
   def passed? = grounding_status == "passed"
   def failed? = grounding_status == "failed"
+  def pending? = grounding_status == "pending"
+  def decided? = !pending?
   def blanks = claims.where(review_status: "blank")
   def blank_slot_keys = body.scan(BLANK_PATTERN).flatten.uniq
 
+  # Once grounding is decided the version is frozen, claims included.
   def readonly? = persisted? && grounding_status_was != "pending"
+
+  def decide!(status)
+    raise ArgumentError, "grounding already decided" if decided?
+
+    update!(grounding_status: status.to_s)
+  end
 end

@@ -41,6 +41,39 @@ RSpec.describe ContentItem, type: :model do
     expect { other.publish!(passed) }.to raise_error(ArgumentError, /another item/)
   end
 
+  it "cannot be made published, or repointed, except through publish!" do
+    passed = item.versions.create!(body: "本文")
+    passed.decide!(:passed)
+    direct = site.content_items.build(archetype_page_type: "faq", url: "/faq", status: "published")
+    expect(direct).not_to be_valid
+    expect(direct.errors[:published_version]).to be_present
+
+    item.status = "published"
+    item.published_version = passed
+    expect(item).not_to be_valid
+    expect(item.errors[:status]).to include(I18n.t("activerecord.errors.models.content_item.attributes.status.use_publish"))
+
+    item.reload.publish!(passed)
+    other = item.versions.create!(body: "二")
+    other.decide!(:passed)
+    item.published_version = other
+    expect(item).not_to be_valid, "repointing outside publish! is refused"
+    item.reload.publish!(other)
+    expect(item.published_version).to eq(other)
+  end
+
+  it "is never physically deleted, even when empty" do
+    empty = site.content_items.create!(archetype_page_type: "faq", url: "/faq")
+    expect { empty.destroy! }.to raise_error(ActiveRecord::RecordNotDestroyed)
+    expect(ContentItem.exists?(empty.id)).to be(true)
+  end
+
+  it "numbers concurrent appends under a lock" do
+    a = item.append_version!(body: "一")
+    b = item.append_version!(body: "二")
+    expect([ a.version, b.version ]).to eq([ 1, 2 ])
+  end
+
   it "keeps every version and the published pointer when unpublished" do
     v1 = item.versions.create!(body: "一", grounding_status: "passed")
     v2 = item.versions.create!(body: "二", grounding_status: "passed")
