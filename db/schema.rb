@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_10_030000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_10_040000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -126,11 +126,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_030000) do
     t.index ["site_id"], name: "index_facts_on_site_id"
   end
 
+  create_table "goals", force: :cascade do |t|
+    t.string "archetype"
+    t.float "confidence", default: 0.0, null: false
+    t.datetime "created_at", null: false
+    t.text "description", null: false
+    t.string "metric"
+    t.string "name", null: false
+    t.bigint "site_id", null: false
+    t.bigint "source_item_id"
+    t.string "status", default: "proposed", null: false
+    t.date "target_date"
+    t.string "target_value"
+    t.datetime "updated_at", null: false
+    t.index ["site_id"], name: "index_goals_on_site_id"
+    t.index ["source_item_id"], name: "index_goals_on_source_item_id"
+  end
+
   create_table "interview_turns", force: :cascade do |t|
     t.text "answer_text"
     t.datetime "answered_at"
     t.datetime "created_at", null: false
     t.jsonb "examples", default: [], null: false
+    t.text "extraction_error"
+    t.string "extraction_status", default: "pending", null: false
     t.bigint "interview_id", null: false
     t.integer "position", null: false
     t.string "question_kind", null: false
@@ -145,8 +164,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_030000) do
   create_table "interviews", force: :cascade do |t|
     t.float "archetype_confidence"
     t.string "archetype_hypothesis"
+    t.boolean "clarification_asked", default: false, null: false
     t.datetime "completed_at"
     t.datetime "created_at", null: false
+    t.integer "low_confidence_streak", default: 0, null: false
+    t.jsonb "pending_question"
     t.integer "question_count", default: 0, null: false
     t.bigint "site_id", null: false
     t.jsonb "slot_state", default: {}, null: false
@@ -240,11 +262,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_030000) do
     t.string "domain", null: false
     t.string "name", null: false
     t.string "primary_archetype"
+    t.bigint "primary_entity_id"
     t.string "primary_language", default: "ja", null: false
     t.string "status", default: "setup", null: false
     t.string "timezone", default: "Asia/Tokyo", null: false
     t.datetime "updated_at", null: false
     t.string "user_role"
+    t.index ["primary_entity_id"], name: "index_sites_on_primary_entity_id"
   end
 
   create_table "solid_queue_batch_executions", force: :cascade do |t|
@@ -450,6 +474,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_030000) do
   add_foreign_key "experiences", "sites"
   add_foreign_key "facts", "entities"
   add_foreign_key "facts", "sites"
+  add_foreign_key "goals", "sites"
+  add_foreign_key "goals", "source_items"
   add_foreign_key "interview_turns", "interviews"
   add_foreign_key "interview_turns", "source_items"
   add_foreign_key "interviews", "sites"
@@ -460,6 +486,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_10_030000) do
   add_foreign_key "questions", "sites"
   add_foreign_key "sessions", "users"
   add_foreign_key "site_archetypes", "sites"
+  add_foreign_key "sites", "entities", column: "primary_entity_id"
   add_foreign_key "solid_queue_batch_executions", "solid_queue_batches", column: "batch_id", on_delete: :cascade
   add_foreign_key "solid_queue_batch_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

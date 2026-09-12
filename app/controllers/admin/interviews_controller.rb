@@ -17,7 +17,7 @@ module Admin
 
     def answer
       runner = Interviewing::Runner.new(@interview)
-      runner.answer!(params[:answer], turn_id: params[:turn_id])
+      runner.answer_and_process!(params[:answer], turn_id: params[:turn_id])
       redirect_to admin_interview_path
     rescue Interviewing::Runner::StaleTurn
       redirect_to admin_interview_path, alert: t("interview.stale_turn")

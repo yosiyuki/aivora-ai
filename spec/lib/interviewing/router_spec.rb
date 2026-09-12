@@ -1,0 +1,109 @@
+require "rails_helper"
+
+RSpec.describe Interviewing::Router do
+  let!(:site) { create_site }
+  let(:interview) { site.interviews.create! }
+  let(:runner) { Interviewing::Runner.new(interview, question_source: Interviewing::FixedQuestionSource.new) }
+  let(:turn) { runner.answer!("渋谷でカフェをやっています。豆は農園から直接仕入れて自分で焙煎しています。近所の人にもっと来てほしい。") }
+
+  it "routes intent to goals, facts to Facts, experiences to Experiences — and never intent to Knowledge", :aggregate_failures do
+    described_class.new(interview).route!(turn, cafe_output)
+
+    goal = site.goals.sole
+    expect(goal.description).to eq("近所の人にもっと来てほしい")
+    expect(goal.source_item).to eq(turn.source_item)
+    expect(goal.metric).to be_nil, "quantified later by the archetype, never by the model"
+    expect(Fact.where("value_json::text LIKE ?", "%来てほしい%")).to be_empty
+    expect(Experience.where("body LIKE ?", "%来てほしい%")).to be_empty
+
+    entity = site.reload.primary_entity
+    expect(entity).to have_attributes(canonical_name: "渋谷のカフェ", entity_type: "business")
+    expect(site.entity_candidates.sole.status).to eq("accepted")
+
+    facts = entity.facts.order(:id)
+    expect(facts.map(&:attribute_key)).to eq(%w[location name])
+    expect(facts).to all(be_accepted), "the owner said it, so it is accepted with provenance"
+    expect(facts.first.evidence.sole.source_item).to eq(turn.source_item)
+    expect(facts.first.risk_level).to eq("high")
+
+    experience = site.experiences.sole
+    expect(experience.body).to eq("豆は農園から直接仕入れて自分で焙煎しています"), "the owner's words survive verbatim"
+    expect(experience).to be_provenanced
+
+    expect(site.questions.sole.text).to include("駐車場")
+    expect(interview.reload.slot_state.keys).to contain_exactly("location", "name", "what")
+    expect(interview.pending_question["examples"].size).to eq(3)
+  end
+
+  it "records the role from the role question only" do
+    described_class.new(interview).route!(turn, cafe_output("role" => "business"))
+    expect(site.reload.user_role).to eq("business")
+
+    other = runner.answer!("次の答え")
+    described_class.new(interview).route!(other, cafe_output("role" => "expert", "primary_entity" => nil, "facts" => [], "experiences" => [], "goals" => [], "utterances" => []))
+    expect(site.reload.user_role).to eq("business")
+  end
+
+  it "keeps a low-confidence entity as a candidate and stores facts as slot values only" do
+    described_class.new(interview).route!(turn, cafe_output("primary_entity" => { "name" => "どこかの店", "entity_type" => "business", "confidence" => 0.3 }))
+    expect(site.reload.primary_entity).to be_nil
+    expect(site.entity_candidates.sole).to be_pending
+    expect(Fact.count).to eq(0)
+    expect(interview.reload.slot_state).to include("location")
+  end
+
+  it "drops a proposed next question without three examples of differing length" do
+    described_class.new(interview).route!(turn, cafe_output("next_question" => { "text" => "x", "examples" => [ "a" ], "targets_slot" => nil, "quotes_user" => false }))
+    expect(interview.reload.pending_question).to be_nil
+
+    other = runner.answer!("次")
+    described_class.new(interview).route!(other, cafe_output("next_question" => { "text" => "x", "examples" => %w[abc def ghi], "targets_slot" => nil, "quotes_user" => true }))
+    expect(interview.reload.pending_question).to be_nil, "three same-length examples read as a menu"
+  end
+
+  it "clamps out-of-range confidences and keeps the raw answer as the experience body when the span is not in the answer" do
+    described_class.new(interview).route!(turn, cafe_output(
+      "primary_entity" => { "name" => "渋谷のカフェ", "entity_type" => "business", "confidence" => 1.7 },
+      "experiences" => [ { "slot" => "what", "summary" => "自家焙煎", "source_text" => "本人は言っていない引用", "confidence" => -2 } ]
+    ))
+    expect(site.entity_candidates.sole.confidence).to eq(1.0)
+    expect(site.experiences.sole.body).to eq(turn.answer_text), "never the model's paraphrase"
+    expect(site.experiences.sole.metadata["grounded"]).to be(false)
+    expect(interview.reload.slot_state.dig("what", "confidence")).to eq(0.0)
+  end
+
+  it "never accepts a fact the owner did not verifiably say" do
+    described_class.new(interview).route!(turn, cafe_output(
+      "facts" => [ { "slot" => "hours", "attribute" => "opening_hours", "value" => "07:00-17:00", "source_text" => "朝7時から夕方5時まで", "confidence" => 0.95 } ]
+    ))
+    fact = site.reload.primary_entity.facts.sole
+    expect(fact.status).to eq("candidate"), "the span is not in the answer, so it is not the owner's statement"
+    expect(fact).not_to be_provenanced
+    expect(interview.reload.slot_state).not_to have_key("hours")
+  end
+
+  it "drops a fact whose span the model also classified as intent" do
+    described_class.new(interview).route!(turn, cafe_output(
+      "facts" => [ { "slot" => "offerings", "attribute" => "offerings", "value" => "近所の人に来てほしい", "source_text" => "近所の人にもっと来てほしい", "confidence" => 0.9 } ]
+    ))
+    expect(site.reload.primary_entity.facts).to be_empty
+    expect(site.goals.sole.description).to eq("近所の人にもっと来てほしい"), "intent still lands in goals"
+  end
+
+  it "grounds spans regardless of spacing and keeps the user's own spacing in the body" do
+    spaced = runner.answer!("豆は 農園から 直接 仕入れています。")
+    described_class.new(interview).route!(spaced, cafe_output(
+      "primary_entity" => nil, "facts" => [], "goals" => [], "utterances" => [],
+      "experiences" => [ { "slot" => "story", "summary" => "直接仕入れ", "source_text" => "豆は農園から直接仕入れています", "confidence" => 0.9 } ]
+    ))
+    exp = site.experiences.sole
+    expect(exp.metadata["grounded"]).to be(true)
+    expect(exp.body).to eq("豆は 農園から 直接 仕入れています。")
+  end
+
+  it "gives a goal the metric immediately when the archetype is already known" do
+    site.add_archetype(:business, primary: true)
+    described_class.new(interview).route!(turn, cafe_output)
+    expect(site.goals.sole).to have_attributes(archetype: "business", metric: "visits_or_inquiries")
+  end
+end

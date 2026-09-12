@@ -208,6 +208,21 @@ site — a checkbox answer can never appear in an article, but the user's own wo
   shop's location is needed whoever runs it.
 - First run: **input source present → start by ingesting; absent → generate one article from the interview
   alone**.
+- **One structured LLM call per answer.** `Interviewing::Processor` runs `ExtractionAgent` (a single
+  `Llm::Client#extract` with `ExtractionSchema`), then `Router` writes intent → `goals`, facts →
+  `Fact#accept!` (owner statements are the validation), experiences → `Experience` with the verbatim
+  `body`, questions/problems → their tables, and `ArchetypeResolver` decides the archetype in code
+  (threshold 0.7, one clarifying question after two low-confidence answers). The model proposes the next
+  question; `LlmQuestionSource` only serves it if it carries exactly three examples, else the fixed
+  questions take over. An LLM failure marks the turn `failed` and the interview continues.
+- **The model's word is not the owner's word.** Every fact, experience and goal in the extraction output
+  carries `source_text`, a verbatim span of the answer; `Router` checks it against the raw text
+  (whitespace-insensitive). A fact whose span is not in the answer stays a candidate and fills no slot; a
+  fact whose span was also classified as intent is dropped; an experience keeps the user's exact span as
+  `body`, or the whole raw answer, never a paraphrase.
+- **One LLM call per answer is enforced at the database**: `InterviewTurn#claim_for_extraction!` moves
+  `pending → processing` with a conditional `update_all`; done and failed are terminal, so a resubmit
+  never extracts again. Routing, archetype resolution and the done mark share one transaction.
 - Implementation: `Interviewing::Runner` hands out one question at a time from a `QuestionSource`
   (`FixedQuestionSource` asks the fixed opening three — role, topic, purpose — plus generic follow-ups;
   the LLM-backed source lands in #15). Every answer is written twice on purpose: to `interview_turns`
