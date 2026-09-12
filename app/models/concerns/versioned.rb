@@ -5,7 +5,12 @@ module Versioned
 
   included do
     # Every record has at least one version, so destroy always raises: nothing
-    # versioned is ever physically deleted (README §23).
+    # versioned is ever physically deleted (README §23). This guards the
+    # ActiveRecord path (destroy / update! / create!). Bypass APIs
+    # (delete, delete_all, update_all, update_columns, insert_all) skip it, so
+    # they are forbidden on knowledge tables; spec/lib/knowledge_bypass_spec.rb
+    # fails the build if one appears. Database-level enforcement is tracked
+    # separately.
     has_many :knowledge_versions, as: :knowledge, dependent: :restrict_with_exception
     attr_accessor :change_reason, :changed_by
 

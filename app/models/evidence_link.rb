@@ -7,6 +7,10 @@ class EvidenceLink < ApplicationRecord
   validates :relation_type, inclusion: { in: RELATIONS }
   validate :same_site
 
+  # Links are only ever added: provenance cannot be removed from knowledge
+  # after it became publishable.
+  def readonly? = persisted?
+
   private
 
   # Provenance never crosses a tenant boundary.

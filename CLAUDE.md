@@ -126,7 +126,11 @@ the core quality mechanism, since Human Review is absent.
 create/update appends a `knowledge_versions` snapshot) and `Evidenced` (`add_evidence!`, `provenanced?`).
 `Fact#accept!(evidence:)` is the only way a fact becomes accepted — the validation refuses `accepted`
 without an evidence link — and `Fact#supersede!` closes the old fact's validity window instead of editing
-it. `EntityCandidate#promote!` is the only way a candidate becomes an `Entity`.
+it. `EntityCandidate#promote!` is the only way a candidate becomes an `Entity`. `EvidenceLink` and `Evidence`
+are read-only once persisted. **Never use `delete`, `delete_all`, `update_all`, `update_columns`,
+`insert_all` or `upsert_all` on knowledge tables** — they bypass every one of these guards, and
+`spec/lib/knowledge_bypass_spec.rb` fails the build if one appears. Every knowledge row validates that its
+associations (entity, source_item) belong to the same site (`SameSite`).
 Facts carry `valid_from` / `valid_until` /
 `last_verified_at` / `confidence` / `risk_level`; updates create `knowledge_versions` (§11;
 `DatabaseSchema.md` §20).

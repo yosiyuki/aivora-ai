@@ -54,4 +54,32 @@ RSpec.describe Evidence, type: :model do
     expect(q.knowledge_versions.count).to eq(2)
     expect(site.problems.create!(text: "混む", confidence: 0.5).knowledge_versions.count).to eq(1)
   end
+  it "keeps provenance links append-only" do
+    ev = owner_evidence(text: "7時から")
+    fact = site.entities.create!(entity_type: "business", canonical_name: "店").facts
+               .create!(attribute_key: "opening_hours", value_json: { "value" => "07:00" }, confidence: 0.9)
+    fact.accept!(evidence: ev)
+    link = fact.evidence_links.sole
+    expect { link.destroy! }.to raise_error(ActiveRecord::ReadOnlyRecord)
+    expect { link.update!(relation_type: "mentions") }.to raise_error(ActiveRecord::ReadOnlyRecord)
+    expect(fact.reload).to be_provenanced
+  end
+
+  it "rejects records assembled across sites even when the pairwise check would pass" do
+    other_site = Site.new(name: "他社", domain: "other.example")
+    other_site.save!(validate: false)
+    foreign_item = Source.interview_for(other_site).source_items.create!(raw_content: "x", external_id: "f1")
+
+    ev = Evidence.new(site: site, source_item: foreign_item, content: "x", evidence_type: "statement")
+    expect(ev).not_to be_valid
+    expect(ev.errors[:source_item]).to be_present
+
+    foreign_entity = other_site.entities.create!(entity_type: "business", canonical_name: "他社の店")
+    fact = site.facts.build(entity: foreign_entity, attribute_key: "a", value_json: { "value" => "b" }, confidence: 0.5)
+    expect(fact).not_to be_valid
+    expect(fact.errors[:entity]).to be_present
+
+    candidate = site.entity_candidates.build(candidate_name: "x", entity_type: "business", source_item: foreign_item)
+    expect(candidate).not_to be_valid
+  end
 end

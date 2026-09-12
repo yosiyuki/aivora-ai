@@ -7,6 +7,9 @@ ja:
     site_name: サイト名
     domain: ドメイン
   activerecord:
+    errors:
+      messages:
+        other_site: は別のサイトのものです
     attributes:
       user:
         name: お名前
