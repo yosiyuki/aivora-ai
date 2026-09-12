@@ -49,7 +49,14 @@ RSpec.describe Interview, type: :model do
     expect { interview.complete! }.to have_enqueued_job(Content::GenerateJob).with(site.id, "top")
 
     other = site.interviews.create!
-    expect { other.complete! rescue nil }.not_to have_enqueued_job(Content::GenerateJob)
+    Interviewing::Runner.new(other).tap { |r| 3.times { |i| r.answer!("答え #{i}") } }
+    expect do
+      ActiveRecord::Base.transaction do
+        other.complete!            # perform_later runs here...
+        raise ActiveRecord::Rollback   # ...and the transaction is rolled back
+      end
+    end.not_to have_enqueued_job(Content::GenerateJob)
+    expect(other.reload).not_to be_completed
   end
   it "has exactly one owner-trusted interview source per site, whatever state it is found in" do
     a = Source.interview_for(site)

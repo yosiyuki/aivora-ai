@@ -6,19 +6,26 @@ module Content
   class GenerateJob < ApplicationJob
     queue_as :default
 
-    retry_on ActiveRecord::Deadlocked, ActiveRecord::ConnectionNotEstablished, wait: 5.seconds, attempts: 3
+    # Enqueue only after the surrounding transaction commits (Interview#complete!
+    # enqueues from inside one). Explicit, not inherited from the adapter.
+    self.enqueue_after_transaction_commit = true
+
     discard_on ActiveRecord::RecordNotFound
 
     def perform(site_id, page_type)
       site = Site.find(site_id)
-      item, previous_status = ContentItem.claim_for_generation!(site, page_type)
-      return unless item
+      claim = ContentItem.claim_for_generation!(site, page_type) or return
+      item, token, previous_status = claim
 
       begin
         version = Content::Generator.new(site, page_type: page_type).generate!
-        item.reload.update!(status: previous_status) unless version.passed?
-      rescue Llm::Error => e
-        item.record_generation_failure!(e, restore_status: previous_status)
+        item.release_generation!(token, to: version.passed? ? "published" : previous_status)
+      rescue StandardError => e
+        # Any failure after the claim: record it and hand the row back. An LLM
+        # error is not retried blindly — a retry would spend the budget again.
+        item.record_generation_failure!(e, token: token, restore_status: previous_status)
+      ensure
+        item.release_generation!(token, to: previous_status)   # no-op unless still held with this token
       end
     end
   end

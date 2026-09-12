@@ -23,6 +23,17 @@ RSpec.describe "Admin content items", type: :request do
     expect(response.body).not_to include("<textarea"), "observation only"
   end
 
+  it "lists many pages without a query per row" do
+    stub_generation
+    Content::GenerateJob.perform_now(site.id, "top")
+    %w[services faq news].each { |t| site.content_items.create!(archetype_page_type: t, url: "/#{t}").append_version!(body: "x") }
+    queries = []
+    counter = ->(*, payload) { queries << payload[:sql] unless payload[:name] == "SCHEMA" }
+    ActiveSupport::Notifications.subscribed(counter, "sql.active_record") { get admin_content_items_path }
+    expect(response).to have_http_status(:ok)
+    expect(queries.grep(/FROM "content_versions"/).size).to be <= 2, "one query per association, not per row"
+  end
+
   it "queues a regeneration and refuses while one is running" do
     stub_generation
     Content::GenerateJob.perform_now(site.id, "top")

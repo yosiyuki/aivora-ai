@@ -5,7 +5,7 @@ module Admin
     before_action :load_item, only: %i[show regenerate]
 
     def index
-      @items = Current.site.content_items.includes(:published_version).order(:created_at)
+      @items = Current.site.content_items.includes(:published_version, :latest_version).order(:created_at)
     end
 
     def show
