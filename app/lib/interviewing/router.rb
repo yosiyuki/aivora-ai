@@ -5,6 +5,8 @@ module Interviewing
   class Router
     OWNER_PROMOTE_CONFIDENCE = 0.6
 
+    class Rejected < StandardError; end
+
     def initialize(interview)
       @interview = interview
       @site = interview.site
@@ -12,14 +14,16 @@ module Interviewing
 
     def route!(turn, output)
       item = turn.source_item or raise ArgumentError, "turn #{turn.id} has no source_item"
+      raw = turn.answer_text
+      intents = output.fetch("utterances", []).select { |u| u["kind"] == "intent" }.map { |u| normalize(u["text"]) }
       @interview.transaction do
-        evidence = Evidence.from_source_item!(item, content: turn.answer_text, evidence_type: "statement",
+        evidence = Evidence.from_source_item!(item, content: raw, evidence_type: "statement",
                                               metadata: { "turn_id" => turn.id })
         apply_role(turn, output["role"])
         entity = resolve_primary_entity(item, output["primary_entity"], evidence)
         route_goals(item, output.fetch("goals", []))
-        route_facts(item, entity, evidence, output.fetch("facts", []))
-        route_experiences(item, entity, evidence, turn.answer_text, output.fetch("experiences", []))
+        route_facts(item, entity, evidence, raw, intents, output.fetch("facts", []))
+        route_experiences(item, entity, evidence, raw, output.fetch("experiences", []))
         route_utterances(entity, evidence, output.fetch("utterances", []))
         @interview.update!(pending_question: normalize_question(output["next_question"]))
       end
@@ -64,28 +68,39 @@ module Interviewing
       end
     end
 
-    def route_facts(item, entity, evidence, facts)
+    # A fact is the owner's only if its source_text is really in the answer and
+    # that span was not classified as intent. Grounded owner facts are
+    # accepted; ungrounded ones stay candidates and fill no slot.
+    def route_facts(item, entity, evidence, raw, intents, facts)
       facts.each do |f|
         next if f["value"].blank?
 
-        @interview.fill_slot!(f["slot"], value: f["value"], source_item_id: item.id, confidence: conf(f)) if f["slot"].present?
+        span = grounded_span(f["source_text"], raw)
+        if span && intents.any? { |i| i.include?(span) || span.include?(i) }
+          Rails.logger.info("router: dropped fact #{f["attribute"].inspect} — its span is an intent")
+          next
+        end
+
+        @interview.fill_slot!(f["slot"], value: f["value"], source_item_id: item.id, confidence: conf(f)) if span && f["slot"].present?
         next unless entity
 
         fact = entity.facts.create!(site: @site, attribute_key: f["attribute"].presence || f["slot"] || "unknown",
-                                    value_json: { "value" => f["value"] }, confidence: conf(f),
-                                    risk_level: risk_for(f["slot"]), change_reason: "extracted from interview")
-        fact.accept!(evidence: evidence) if item.owner?   # the owner said it: that is the validation (G6)
+                                    value_json: { "value" => f["value"], "source_text" => f["source_text"] },
+                                    confidence: conf(f), risk_level: risk_for(f["slot"]), change_reason: "extracted from interview")
+        fact.accept!(evidence: evidence) if span && item.owner?   # the owner said it, verifiably: that is the validation (G6)
       end
     end
 
-    # body must be the owner's words: the model's quote, or failing that the raw
-    # answer itself. A paraphrase (summary) is never stored as a quote.
-    def route_experiences(item, entity, evidence, raw_answer, experiences)
+    # body must be the owner's words: the verbatim span when it is really in
+    # the answer, otherwise the whole raw answer. Never the model's paraphrase.
+    def route_experiences(item, entity, evidence, raw, experiences)
       experiences.each do |e|
         next if e["summary"].blank?
 
-        exp = @site.experiences.create!(entity: entity, summary: e["summary"], body: e["quote"].presence || raw_answer,
-                                        person_id: "owner", metadata: { "source_item_id" => item.id })
+        span = grounded_span(e["source_text"], raw)
+        body = span ? verbatim(e["source_text"], raw) : raw
+        exp = @site.experiences.create!(entity: entity, summary: e["summary"], body: body,
+                                        person_id: "owner", metadata: { "source_item_id" => item.id, "grounded" => span.present? })
         exp.add_evidence!(evidence)
         @interview.fill_slot!(e["slot"], value: e["summary"], source_item_id: item.id, confidence: conf(e)) if e["slot"].present?
       end
@@ -107,6 +122,24 @@ module Interviewing
 
     # Structured outputs cannot express numeric bounds; clamp every confidence here.
     def conf(hash) = hash["confidence"].to_f.clamp(0.0, 1.0)
+
+    # Whitespace-insensitive containment check: the model's span must occur in
+    # the raw answer. Returns the normalised span, or nil.
+    def normalize(text) = text.to_s.gsub(/[[:space:]]+/, "").unicode_normalize(:nfkc).downcase
+
+    def grounded_span(source_text, raw)
+      span = normalize(source_text)
+      return nil if span.blank?
+
+      normalize(raw).include?(span) ? span : nil
+    end
+
+    # The span as the user typed it (with their spacing), for storage.
+    def verbatim(source_text, raw)
+      return source_text if raw.include?(source_text.to_s)
+
+      raw   # spacing differs; keep the whole answer rather than a re-spaced quote
+    end
 
     # A proposed question is used only if it keeps the contract the fixed
     # questions keep: three examples of clearly different length. quotes_user

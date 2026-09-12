@@ -23,5 +23,8 @@ RSpec.describe Interviewing::ExtractionSchema do
       .to match_array(ArchetypeDefinition.keys)
     expect(schema.dig(:properties, :facts, :items, :properties, :slot, :anyOf, 0, :enum)).to eq(%w[name what location])
     expect(schema.dig(:properties, :primary_entity, :anyOf, 0, :properties, :entity_type, :enum)).to eq(Entity::TYPES)
+    %i[facts experiences goals].each do |k|
+      expect(schema.dig(:properties, k, :items, :required)).to include("source_text"), "#{k} must carry a verbatim span"
+    end
   end
 end

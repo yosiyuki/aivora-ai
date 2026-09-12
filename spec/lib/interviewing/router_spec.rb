@@ -61,14 +61,44 @@ RSpec.describe Interviewing::Router do
     expect(interview.reload.pending_question).to be_nil, "three same-length examples read as a menu"
   end
 
-  it "clamps out-of-range confidences and keeps the raw answer as the experience body when the quote is missing" do
+  it "clamps out-of-range confidences and keeps the raw answer as the experience body when the span is not in the answer" do
     described_class.new(interview).route!(turn, cafe_output(
       "primary_entity" => { "name" => "渋谷のカフェ", "entity_type" => "business", "confidence" => 1.7 },
-      "experiences" => [ { "slot" => "what", "summary" => "自家焙煎", "quote" => "", "confidence" => -2 } ]
+      "experiences" => [ { "slot" => "what", "summary" => "自家焙煎", "source_text" => "本人は言っていない引用", "confidence" => -2 } ]
     ))
     expect(site.entity_candidates.sole.confidence).to eq(1.0)
     expect(site.experiences.sole.body).to eq(turn.answer_text), "never the model's paraphrase"
+    expect(site.experiences.sole.metadata["grounded"]).to be(false)
     expect(interview.reload.slot_state.dig("what", "confidence")).to eq(0.0)
+  end
+
+  it "never accepts a fact the owner did not verifiably say" do
+    described_class.new(interview).route!(turn, cafe_output(
+      "facts" => [ { "slot" => "hours", "attribute" => "opening_hours", "value" => "07:00-17:00", "source_text" => "朝7時から夕方5時まで", "confidence" => 0.95 } ]
+    ))
+    fact = site.reload.primary_entity.facts.sole
+    expect(fact.status).to eq("candidate"), "the span is not in the answer, so it is not the owner's statement"
+    expect(fact).not_to be_provenanced
+    expect(interview.reload.slot_state).not_to have_key("hours")
+  end
+
+  it "drops a fact whose span the model also classified as intent" do
+    described_class.new(interview).route!(turn, cafe_output(
+      "facts" => [ { "slot" => "offerings", "attribute" => "offerings", "value" => "近所の人に来てほしい", "source_text" => "近所の人にもっと来てほしい", "confidence" => 0.9 } ]
+    ))
+    expect(site.reload.primary_entity.facts).to be_empty
+    expect(site.goals.sole.description).to eq("近所の人にもっと来てほしい"), "intent still lands in goals"
+  end
+
+  it "grounds spans regardless of spacing and keeps the user's own spacing in the body" do
+    spaced = runner.answer!("豆は 農園から 直接 仕入れています。")
+    described_class.new(interview).route!(spaced, cafe_output(
+      "primary_entity" => nil, "facts" => [], "goals" => [], "utterances" => [],
+      "experiences" => [ { "slot" => "story", "summary" => "直接仕入れ", "source_text" => "豆は農園から直接仕入れています", "confidence" => 0.9 } ]
+    ))
+    exp = site.experiences.sole
+    expect(exp.metadata["grounded"]).to be(true)
+    expect(exp.body).to eq("豆は 農園から 直接 仕入れています。")
   end
 
   it "gives a goal the metric immediately when the archetype is already known" do

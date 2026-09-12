@@ -51,6 +51,40 @@ RSpec.describe Interviewing::Processor do
     expect(next_turn.question_kind).to eq("topic"), "fixed question source takes over"
   end
 
+  it "never calls the model twice for the same answer, even after a failure" do
+    Llm::Fake.respond(:extraction) { raise Llm::RequestError.new("boom", retryable: true) }
+    first = runner.current_turn
+    runner.answer_and_process!("店主です", turn_id: first.id)
+    expect(first.reload.extraction_status).to eq("failed")
+
+    runner.answer_and_process!("店主です", turn_id: first.id)   # idempotent resubmit of the same turn
+    expect(Llm::Fake.calls.size).to eq(1)
+    expect(first.reload.extraction_status).to eq("failed")
+  end
+
+  it "skips a turn another request already claimed" do
+    Llm::Fake.respond(:extraction) { cafe_output }
+    turn = runner.answer!("渋谷でカフェをやっています")
+    turn.update!(extraction_status: "processing")
+    expect(described_class.new(interview).process!(turn)).to be_nil
+    expect(Llm::Fake.calls).to be_empty
+  end
+
+  it "writes nothing when a step after the model call fails" do
+    Llm::Fake.respond(:extraction) { cafe_output }
+    allow_any_instance_of(Interviewing::ArchetypeResolver).to receive(:resolve!).and_raise(RuntimeError, "resolver down")
+    runner.answer_and_process!("渋谷でカフェをやっています")
+
+    turn = interview.turns.first.reload
+    expect(turn.extraction_status).to eq("failed")
+    expect(turn.extraction_error).to include("resolver down")
+    expect(Fact.count).to eq(0)
+    expect(Goal.count).to eq(0)
+    expect(Experience.count).to eq(0)
+    expect(site.reload.primary_entity).to be_nil
+    expect(turn.answer_text).to eq("渋谷でカフェをやっています"), "the answer itself survives"
+  end
+
   it "reaches ready as soon as the minimum slots of the resolved archetype are filled" do
     Llm::Fake.respond(:extraction) { cafe_output }
     runner.answer_and_process!("渋谷でカフェをやっています")

@@ -56,7 +56,7 @@ module Interviewing
     # transaction, so a model failure can never lose the answer.
     def answer_and_process!(text, turn_id: nil, processor: Processor.new(interview))
       turn = answer!(text, turn_id: turn_id)
-      processor.process!(turn) unless turn.extracted?   # an idempotent resubmit must not extract twice
+      processor.process!(turn)   # claims the turn; a resubmit or a failed turn never extracts again
       turn
     end
 

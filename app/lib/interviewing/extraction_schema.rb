@@ -21,15 +21,17 @@ module Interviewing
           primary_entity: nullable(object(
             name: { type: "string" }, entity_type: string_enum(Entity::TYPES), confidence: { type: "number" }
           )),
+          # source_text is a verbatim span of the answer. Code checks it against
+          # the raw text; anything that cannot be found there is not the user's.
           facts: array_of(object(
             slot: nullable(string_enum(slot_keys)), attribute: { type: "string" },
-            value: { type: "string" }, confidence: { type: "number" }
+            value: { type: "string" }, source_text: { type: "string" }, confidence: { type: "number" }
           )),
           experiences: array_of(object(
             slot: nullable(string_enum(slot_keys)), summary: { type: "string" },
-            quote: { type: "string" }, confidence: { type: "number" }
+            source_text: { type: "string" }, confidence: { type: "number" }
           )),
-          goals: array_of(object(statement: { type: "string" }, verb: { type: "string" }, confidence: { type: "number" })),
+          goals: array_of(object(statement: { type: "string" }, verb: { type: "string" }, source_text: { type: "string" }, confidence: { type: "number" })),
           archetype: object(candidates: array_of(object(archetype: string_enum(archetypes), confidence: { type: "number" }))),
           next_question: object(
             text: { type: "string" }, examples: array_of({ type: "string" }),
