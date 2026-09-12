@@ -14,6 +14,9 @@
 #
 # See https://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
 RSpec.configure do |config|
+  # Specs that call the real LLM API run only on demand: LIVE_LLM=1 bundle exec rspec --tag live
+  config.filter_run_excluding live: true unless ENV["LIVE_LLM"] == "1"
+
   # rspec-expectations config goes here. You can use an alternate
   # assertion/expectation library such as wrong or the stdlib/minitest
   # assertions if you prefer.
