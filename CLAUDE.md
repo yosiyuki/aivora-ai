@@ -230,6 +230,28 @@ site — a checkbox answer can never appear in an article, but the user's own wo
   only input the Extraction Agent reads). Readiness and the ten-question cap are decided in
   `Interview` / `Runner`, never by the model.
 
+## Generating a page
+
+Two LLM calls per page, then code decides (`app/lib/content/`, README §21):
+
+```text
+Content::KnowledgePack.for(site, page_type:)   # code: accepted Facts (F1..), Experiences (E1..), goals, slots
+Content::Drafter#draft                          # LLM drafting: Markdown from the pack only; missing facts → [[slot:key]]
+Content::ClaimExtractor#extract(body)           # LLM grounding: statements + kind + support ref (structured)
+Content::Grounder#ground(body:, claims:)        # code: grounded / blank / excised / general, sentence removal
+Content::Generator#generate!                    # one transaction: version + claims, publish! only if passed
+```
+
+- The model never sees DB ids — only short refs; `Grounder` resolves refs back through the pack.
+- A verifiable claim is grounded only if the referenced Fact's **value occurs in the sentence**
+  (`Content::TextNormalizer`, shared with the interview `Router`). Otherwise the sentence is removed and
+  `[[slot:key]]` takes its place (`review_status: blank`). An experiential claim without an Experience
+  ref is removed (`excised`). `general` stays but never becomes knowledge.
+- A heading that has to be removed fails the whole version; a failed version is stored but never
+  published. An LLM error creates no version at all.
+- Editorial prohibitions (`app/prompts/content/editorial_policy.txt`) are product-fixed and embedded in
+  both prompts.
+
 ## Site structure is derived, never chosen
 
 Site structure comes from the **goal**, not from a user picking a template and not from the LLM inventing

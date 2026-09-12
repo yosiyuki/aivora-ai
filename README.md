@@ -429,6 +429,12 @@ Unsupported Claimは公開しない。
 **Human Reviewを必須としない設計であるため、
 Grounding Checkが品質保証の中核となる。省略してはならない。**
 
+### 実装上の制約
+
+- **1 ページにつき LLM 呼び出しは 2 回**: Draft（自由文）と Claim 抽出（構造化）。書き手に自分の文を採点させない。
+- **Grounding の合否と本文からの除去はコードが行う。** 参照された Fact の値が文中に含まれることまで確認し、根拠のない文は文単位で除去して `[[slot:キー]]` に置き換える。見出しが除去対象になれば版全体を failed にし、公開しない。
+- **書いてよい材料（Knowledge Pack）はコードで先に限定する。** 手元に無い検証可能な事実は Draft の時点で `[[slot:キー]]` として残し、Verification Request の起点にする。
+
 ## 22. Content Decay & Cannibalization
 
 既存Contentについて、
