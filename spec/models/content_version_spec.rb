@@ -11,11 +11,33 @@ RSpec.describe ContentVersion, type: :model do
     expect(v.blank_slot_keys).to eq(%w[hours location])
   end
 
-  it "is read-only once grounding has been decided" do
+  it "is read-only once grounding has been decided, and never deleted even while pending" do
     v = item.versions.create!(body: "x")
-    v.update!(grounding_status: "passed")
+    expect { v.destroy! }.to raise_error(ActiveRecord::RecordNotDestroyed)
+    v.decide!(:passed)
     expect { v.update!(body: "edited") }.to raise_error(ActiveRecord::ReadOnlyRecord)
-    expect { v.destroy! }.to raise_error(ActiveRecord::ReadOnlyRecord)
+    expect { v.decide!(:failed) }.to raise_error(ArgumentError, /already decided/)
+  end
+
+  it "freezes its claims once decided: no additions, no edits, no deletions" do
+    v = item.versions.create!(body: "x")
+    claim = v.claims.create!(statement: "s", claim_kind: "general", review_status: "general")
+    expect(claim).to be_grounded
+    expect { claim.update!(statement: "t") }.to raise_error(ActiveRecord::ReadOnlyRecord)
+    expect { claim.destroy! }.to raise_error(ActiveRecord::RecordNotDestroyed)
+
+    v.decide!(:passed)
+    late = v.claims.build(statement: "late", claim_kind: "general", review_status: "general")
+    expect(late).not_to be_valid
+    expect(late.errors[:content_version]).to be_present
+  end
+
+  it "derives grounded from review_status so the two cannot disagree" do
+    v = item.versions.create!(body: "x")
+    blank = v.claims.create!(statement: "s", claim_kind: "verifiable", review_status: "blank", slot_key: "hours", grounded: true)
+    expect(blank.reload).not_to be_grounded
+    bad = v.claims.build(statement: "s", claim_kind: "verifiable", review_status: "grounded", grounded: false)
+    expect(bad).not_to be_valid, "grounded status without knowledge"
   end
 
   it "requires knowledge on grounded non-general claims and records blanks with a slot" do
