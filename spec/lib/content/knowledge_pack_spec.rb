@@ -11,9 +11,12 @@ RSpec.describe Content::KnowledgePack do
     expect(pack.experience_by_ref("E2").body).to include("長居")
     expect(pack.goals).to eq([ "近所の人にもっと来てほしい" ])
     expect(pack.slot_keys).to include("hours", "location")
-    expect(pack.missing_slots.map(&:key)).to include("hours", "name", "what")
+    expect(pack.missing_slots.map(&:key)).to include("hours", "what")
     expect(pack.missing_slots.map(&:key)).not_to include("location"), "an accepted fact fills its slot"
+    expect(pack.missing_slots.map(&:key)).not_to include("name"), "the primary entity is the name"
+    expect(pack.placeholder_slots.map(&:kind).uniq).to eq([ "verifiable" ]), "only facts may become placeholders"
     expect(pack.to_prompt).to include("F1: location = 渋谷").and include("E1: 自家焙煎").and include("hours=営業時間")
+    expect(pack.to_prompt).not_to include("what=")
   end
 
   it "only includes accepted, current facts" do

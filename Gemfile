@@ -66,3 +66,5 @@ gem "capybara", "~> 3.40", group: :test
 gem "anthropic", "~> 1.69"
 
 gem "commonmarker", "~> 2.10"
+
+gem "dotenv-rails", "~> 3.1", groups: [ :development, :test ]

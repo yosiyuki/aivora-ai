@@ -41,6 +41,26 @@ RSpec.describe Content::Grounder do
     expect(result.claims.sole[:review_status]).to eq("blank")
   end
 
+  it "grounds a sentence in the owner's own words even when the model called it verifiable" do
+    body = "コーヒーの豆は、農園から直接仕入れて、自分で焙煎しています。店内は、一人でも長居しやすい静かな雰囲気にしています。"
+    claims = [ claim("コーヒーの豆は、農園から直接仕入れて、自分で焙煎しています。", kind: "verifiable", slot_key: "offerings"),
+               claim("店内は、一人でも長居しやすい静かな雰囲気にしています。", kind: "verifiable") ]
+    result = grounder.ground(body: body, claims: claims)
+    expect(result.body).to eq(body)
+    expect(result.claims.map { |c| c[:review_status] }).to eq(%w[grounded grounded])
+    expect(result.claims.map { |c| c[:claim_kind] }).to eq(%w[experiential experiential])
+    expect(result.claims.map { |c| c[:knowledge_type] }).to eq(%w[Experience Experience])
+  end
+
+  it "removes an ungrounded verifiable sentence outright when no slot fits, instead of leaving filler" do
+    result = grounder.ground(body: "渋谷にあるカフェです。豆の仕入れから焙煎までを自分でやっていること、そして静かな店内であること。",
+                             claims: [ claim("渋谷にあるカフェです。", kind: "verifiable", ref: f),
+                                       claim("豆の仕入れから焙煎までを自分でやっていること、そして静かな店内であること。", kind: "verifiable") ])
+    expect(result.body).to eq("渋谷にあるカフェです。")
+    expect(result.body).not_to include("unknown")
+    expect(result.claims.last[:review_status]).to eq("excised")
+  end
+
   it "excises an experiential sentence with no experience behind it" do
     body = "渋谷にあるカフェです。常連さんはみんな笑顔で帰ります。"
     result = grounder.ground(body: body, claims: [ claim("渋谷にあるカフェです。", kind: "verifiable", ref: f),
@@ -62,10 +82,10 @@ RSpec.describe Content::Grounder do
     expect(result.notes).to include(match(/heading/))
   end
 
-  it "normalises unknown placeholder keys and collapses repeats within a paragraph" do
+  it "drops unknown placeholder keys and collapses repeats within a paragraph" do
     result = grounder.ground(body: "駐車場は [[slot:parking]] です。[[slot:hours]] と [[slot:hours]]。", claims: [])
-    expect(result.body).to eq("駐車場は [[slot:unknown]] です。[[slot:hours]] と 。")
-    expect(result.blanks.map { |b| b["slot_key"] }).to contain_exactly("unknown", "hours")
+    expect(result.body).to eq("駐車場は  です。[[slot:hours]] と 。".gsub(/[ \t]{2,}/, " "))
+    expect(result.blanks.map { |b| b["slot_key"] }).to contain_exactly("hours")
   end
 
   it "ignores a claim whose statement is not in the body" do

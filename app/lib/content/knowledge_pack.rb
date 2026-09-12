@@ -31,6 +31,9 @@ module Content
     def refs = @facts_by_ref.keys + @experiences_by_ref.keys
     def slot_keys = slots.map(&:key)
     def missing_slots = slots.reject(&:filled)
+    # Only a verifiable fact can be left as a placeholder; experiences are
+    # either in the pack or simply not written.
+    def placeholder_slots = missing_slots.select { |s| s.kind == "verifiable" }
     def slot_label(key) = slots.find { |s| s.key == key.to_s }&.label
 
     def to_prompt
@@ -43,8 +46,8 @@ module Content
       lines.concat(experiences.flat_map { |e| [ "#{e.ref}: #{e.summary}", "  本人の言葉: 「#{e.body}」" ] }.presence || [ "（まだありません）" ])
       lines << "\n## 目的（参考。事実ではない）"
       lines.concat(goals.map { |g| "- #{g}" }.presence || [ "（未設定）" ])
-      lines << "\n## 未充足のスロット（無い事実はこのキーで [[slot:キー]] と書く）"
-      lines.concat(missing_slots.map { |s| "- #{s.key}=#{s.label}" }.presence || [ "（すべて揃っています）" ])
+      lines << "\n## 手元に無い事実（書きたければこのキーで [[slot:キー]] と書く。それ以外のキーは使わない）"
+      lines.concat(placeholder_slots.map { |s| "- #{s.key}=#{s.label}" }.presence || [ "（すべて揃っています）" ])
       lines.join("\n")
     end
 
@@ -79,6 +82,7 @@ module Content
 
     def build_slots
       filled_keys = (site.current_interview&.filled_slot_keys || []) + facts.map(&:attribute_key)
+      filled_keys << "name" if entity   # the subject's name is known once there is a primary entity
       site.required_slots.map do |s|
         SlotRef.new(key: s.key, label: s.label, kind: s.kind, level: s.level, filled: filled_keys.include?(s.key))
       end

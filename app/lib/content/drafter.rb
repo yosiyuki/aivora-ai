@@ -42,7 +42,9 @@ module Content
     def parse(text)
       lines = text.to_s.strip.lines
       title_line = lines.find { |l| l.start_with?("# ") }
-      title = title_line&.delete_prefix("# ")&.strip.presence || @pack.entity&.canonical_name || @pack.site.name
+      title = title_line&.delete_prefix("# ")&.strip.presence
+      title = nil if title&.match?(ContentVersion::BLANK_PATTERN)   # a placeholder is not a title
+      title ||= @pack.entity&.canonical_name || @pack.site.name
       body = lines.reject { |l| l.equal?(title_line) }.join.strip
       Draft.new(title: title, body: body)
     end

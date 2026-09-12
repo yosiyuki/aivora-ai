@@ -19,6 +19,12 @@ RSpec.describe Content::Drafter do
     expect(LlmUsage.sole.operation_type).to eq("drafting")
   end
 
+  it "never accepts a placeholder as the title" do
+    Llm::Fake.respond(:drafting) { "# [[slot:name]]\n本文。" }
+    expect(described_class.new(pack).draft.title).to eq("渋谷のカフェ")
+    expect(Llm::Fake.calls.sole.system).to include("タイトルや見出しにプレースホルダを置かない")
+  end
+
   it "falls back to the entity name when the model omits a title" do
     Llm::Fake.respond(:drafting) { "本文だけです。" }
     expect(described_class.new(pack).draft).to have_attributes(title: "渋谷のカフェ", body: "本文だけです。")
