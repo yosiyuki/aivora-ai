@@ -47,6 +47,7 @@ module Content
       end
 
       structural_failure = placeholder_failure || sentences.any? { |s| s.remove && s.kind == :heading }
+      drop_empty_sections!(sentences)
       new_body = rebuild(sentences)
       blanks = claim_rows.select { |r| r[:review_status] == "blank" }.map { |r| { "slot_key" => r[:slot_key], "statement" => r[:statement] } }
       blanks.concat(placeholder_blanks)
@@ -143,6 +144,7 @@ module Content
       body.to_s.split(/\n/, -1).each_with_index.flat_map do |line, para|
         stripped = line.strip
         next [ Sentence.new(line, :blank_line, para) ] if stripped.empty?
+        next [ Sentence.new(line, :blank_line, para, true) ] if stripped.match?(/\A([-*_]\s*){3,}\z/)   # hr: decorative, dropped
         next [ Sentence.new(line, :heading, para) ] if stripped.start_with?("#")
         next [ Sentence.new(line, :list, para) ] if stripped.match?(/\A([-*+]|\d+\.)\s/)
 
@@ -164,9 +166,26 @@ module Content
       t.length <= 20 && !t.match?(SPECIFIC) && !t.match?(SLOT)
     end
 
+    # A sentence built around a known placeholder is a blank by construction;
+    # it stays as long as the framing text carries nothing specific of its own.
     def placeholder_line?(sentence)
-      stripped = sentence.text.gsub(SLOT, "").gsub(/[[:space:][:punct:]、。：:]/, "")
-      sentence.text.match?(SLOT) && stripped.length <= 12   # "営業時間: [[slot:hours]]" style lines
+      return false unless sentence.text.match?(SLOT)
+
+      framing = sentence.text.gsub(SLOT, "")
+      !framing.match?(SPECIFIC)
+    end
+
+    # A heading whose whole section was removed is dropped too (not a failure:
+    # nothing false remains, just nothing to say under that heading).
+    def drop_empty_sections!(sentences)
+      sentences.each_with_index do |s, i|
+        next unless s.kind == :heading && !s.remove
+
+        level = s.text[/\A\s*(#+)/, 1].to_s.length
+        rest = sentences.drop(i + 1)
+        section = rest.take_while { |t| !(t.kind == :heading && t.text[/\A\s*(#+)/, 1].to_s.length <= level) }
+        s.remove = true if section.none? { |t| t.kind != :blank_line && !t.remove }
+      end
     end
 
     def rebuild(sentences)

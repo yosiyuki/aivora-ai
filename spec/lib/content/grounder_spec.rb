@@ -148,6 +148,26 @@ RSpec.describe Content::Grounder do
     expect(result.status).to eq(:failed)
   end
 
+  it "keeps placeholder sentences with plain framing and removes ones that smuggle specifics" do
+    body = "行き方の詳細は [[slot:access]] をご確認ください。\n駅から3分、詳しくは [[slot:access]] へ。"
+    result = grounder.ground(body: body, claims: [])
+    expect(result.body).to eq("行き方の詳細は [[slot:access]] をご確認ください。")
+    expect(result.status).to eq(:passed)
+  end
+
+  it "drops a heading whose section was entirely removed, and horizontal rules" do
+    body = "## 店内の過ごし方\n常連さんはみんな笑顔で帰ります。\n\n---\n\n## 場所\n渋谷にあります。"
+    result = grounder.ground(body: body, claims: [ claim("渋谷にあります。", kind: "verifiable", ref: f) ])
+    expect(result.status).to eq(:passed)
+    expect(result.body).to eq("## 場所\n渋谷にあります。")
+  end
+
+  it "grounds a light rephrasing made only of the owner's words" do
+    result = grounder.ground(body: "豆は農園から直接仕入れています。", claims: [ claim("豆は農園から直接仕入れています。", kind: "verifiable", slot_key: "offerings") ])
+    expect(result.claims.sole).to include(review_status: "grounded", claim_kind: "experiential")
+    expect(result.body).to eq("豆は農園から直接仕入れています。")
+  end
+
   it "ignores a claim whose statement is not in the body" do
     result = grounder.ground(body: "渋谷にあるカフェです。", claims: [ claim("渋谷にあるカフェです。", kind: "verifiable", ref: f), claim("存在しない文", kind: "verifiable") ])
     expect(result.claims.size).to eq(1)
