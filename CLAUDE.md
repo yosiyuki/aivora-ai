@@ -245,12 +245,23 @@ Content::Generator#generate!                    # one transaction: version + cla
 ```
 
 - The model never sees DB ids — only short refs; `Grounder` resolves refs back through the pack.
-- A verifiable claim is grounded only if the referenced Fact's **value occurs in the sentence**
-  (`Content::TextNormalizer`, shared with the interview `Router`). Otherwise the sentence is removed and
-  `[[slot:key]]` takes its place (`review_status: blank`). An experiential claim without an Experience
-  ref is removed (`excised`). `general` stays but never becomes knowledge.
-- A heading that has to be removed fails the whole version; a failed version is stored but never
-  published. An LLM error creates no version at all.
+- **Grounding is fail-closed.** Every sentence, list item and heading must be covered by a claim; anything
+  the extractor did not cover is removed. A verifiable claim is grounded only if the referenced Fact's
+  value occurs in the sentence **and the sentence adds no numbers the pack does not know**
+  (numeric or one-character values also need their slot label nearby). A sentence in the owner's own
+  words is grounded as experiential whatever the model called it, but a reference alone never counts:
+  the text must match (`TextNormalizer.covers?` — fragment of the owner's text, or the owner's text
+  covering ≥ 80% of the sentence with no new digits). `general` is trusted only for text with nothing
+  site-specific in it; numbers, prices, superlatives or the subject's name make it verifiable.
+- Ungrounded verifiable → sentence removed, `[[slot:key]]` left when a real slot fits (`blank`),
+  otherwise just removed (`excised`). Unknown placeholder keys drop the whole line. A heading that is
+  uncovered, ungrounded or carries a placeholder fails the version (short label headings such as
+  「どんなお店か」 are structural and kept). A failed version is stored but never published; an LLM error
+  creates no version at all.
+- **Titles are generated in code** (`Content::Drafter.title_for`: the subject's name, 「よくある質問」…);
+  the model's title is never used because it is not grounded and goes into the public `<title>`.
+- `Content::KnowledgePack` is scoped to the page's subject (the primary entity) and orders facts by slot
+  weight, so truncation drops the least important first.
 - Editorial prohibitions (`app/prompts/content/editorial_policy.txt`) are product-fixed and embedded in
   both prompts.
 - **Generation runs in the background.** `Interview#complete!` enqueues `Content::GenerateJob` (Active Job

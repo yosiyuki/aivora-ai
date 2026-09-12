@@ -39,14 +39,29 @@ module Content
 
     def user_prompt = "# 材料\n#{@pack.to_prompt}\n\n# 指示\n上の材料だけで、#{@pack.page_type} ページを書いてください。"
 
+    PAGE_TITLES = {
+      "top" => ->(name) { name },
+      "services" => ->(name) { "#{name}のサービス" },
+      "faq" => ->(_) { "よくある質問" },
+      "news" => ->(_) { "お知らせ" },
+      "articles" => ->(_) { "記事一覧" },
+      "topics" => ->(_) { "トピック" },
+      "works" => ->(name) { "#{name}の実績" },
+      "profile" => ->(name) { "#{name}について" }
+    }.freeze
+
+    # The model's title is never used: it is not grounded, and it goes into
+    # the public <title>. Titles are generated in code from the subject name.
+    def self.title_for(pack)
+      name = pack.entity&.canonical_name.presence || pack.site.name
+      PAGE_TITLES.fetch(pack.page_type, ->(n) { n }).call(name)
+    end
+
     def parse(text)
       lines = text.to_s.strip.lines
       title_line = lines.find { |l| l.start_with?("# ") }
-      title = title_line&.delete_prefix("# ")&.strip.presence
-      title = nil if title&.match?(ContentVersion::BLANK_PATTERN)   # a placeholder is not a title
-      title ||= @pack.entity&.canonical_name || @pack.site.name
       body = lines.reject { |l| l.equal?(title_line) }.join.strip
-      Draft.new(title: title, body: body)
+      Draft.new(title: self.class.title_for(@pack), body: body)
     end
   end
 end

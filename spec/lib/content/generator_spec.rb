@@ -11,8 +11,9 @@ RSpec.describe Content::Generator do
     expect(item).to have_attributes(url: "/", status: "published", published_version: version, title: "渋谷のカフェ")
     expect(version).to be_passed
     expect(version.body).to include("[[slot:hours]]")
-    expect(version.claims.pluck(:claim_kind).uniq).to contain_exactly("verifiable", "experiential")
+    expect(version.claims.pluck(:claim_kind).uniq).to contain_exactly("verifiable", "experiential", "general")
     expect(version.claims.where(review_status: "grounded").count).to eq(4)
+    expect(version).to be_readonly, "decided versions are frozen"
     expect(version.blanks.count).to eq(0), "the drafter's placeholder is recorded in metadata, not as a claim"
     expect(version.metadata["blanks"]).to include("slot_key" => "hours", "statement" => nil)
     expect(version.metadata["llm_usage_ids"].size).to eq(2), "exactly two LLM calls per page"
@@ -21,6 +22,7 @@ RSpec.describe Content::Generator do
 
   it "writes from experiences alone when there are no facts" do
     Fact.find_each { |f| f.update!(status: "retired") }
+    site.reload
     stub_generation(draft: "# 渋谷のカフェ\n豆は農園から直接仕入れて自分で焙煎しています。",
                     claims: [ { "statement" => "豆は農園から直接仕入れて自分で焙煎しています。", "kind" => "experiential", "support" => { "ref" => "E1" }, "slot_key" => nil, "confidence" => 0.9 } ])
     version = described_class.new(site, page_type: "top").generate!

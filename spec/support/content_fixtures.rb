@@ -36,7 +36,9 @@ module ContentFixtures
       { "statement" => "渋谷にある小さなカフェです。", "kind" => "verifiable", "support" => { "ref" => f }, "slot_key" => nil, "confidence" => 0.9 },
       { "statement" => "豆は農園から直接仕入れて自分で焙煎しています。", "kind" => "experiential", "support" => { "ref" => e1 }, "slot_key" => nil, "confidence" => 0.9 },
       { "statement" => "一人でも長居しやすい静かな雰囲気にしています。", "kind" => "experiential", "support" => { "ref" => e2 }, "slot_key" => nil, "confidence" => 0.9 },
-      { "statement" => "場所は渋谷です。", "kind" => "verifiable", "support" => { "ref" => f }, "slot_key" => "location", "confidence" => 0.95 }
+      { "statement" => "場所は渋谷です。", "kind" => "verifiable", "support" => { "ref" => f }, "slot_key" => "location", "confidence" => 0.95 },
+      { "statement" => "## 店内について", "kind" => "general", "support" => nil, "slot_key" => nil, "confidence" => 0.9 },
+      { "statement" => "## 営業時間・場所", "kind" => "general", "support" => nil, "slot_key" => nil, "confidence" => 0.9 }
     ]
   end
 

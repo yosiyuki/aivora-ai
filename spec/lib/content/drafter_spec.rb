@@ -14,19 +14,14 @@ RSpec.describe Content::Drafter do
 
     call = Llm::Fake.calls.sole
     expect(call.system).to include("誇張しない").and include("[[slot:キー]]").and include("訪問者が最初に読む紹介ページ")
-    expect(call.messages.sole[:content]).to include("F1: location = 渋谷").and include("hours=営業時間")
+    expect(call.messages.sole[:content]).to include("F1: 渋谷のカフェ の 場所 = 渋谷").and include("hours=営業時間")
     expect(call.schema).to be_nil
     expect(LlmUsage.sole.operation_type).to eq("drafting")
   end
 
-  it "never accepts a placeholder as the title" do
-    Llm::Fake.respond(:drafting) { "# [[slot:name]]\n本文。" }
-    expect(described_class.new(pack).draft.title).to eq("渋谷のカフェ")
-    expect(Llm::Fake.calls.sole.system).to include("タイトルや見出しにプレースホルダを置かない")
-  end
-
-  it "falls back to the entity name when the model omits a title" do
-    Llm::Fake.respond(:drafting) { "本文だけです。" }
-    expect(described_class.new(pack).draft).to have_attributes(title: "渋谷のカフェ", body: "本文だけです。")
+  it "never uses the model's title: titles are generated from the subject" do
+    Llm::Fake.respond(:drafting) { "# 地域No.1 24時間営業のカフェ\n本文。" }
+    expect(described_class.new(pack).draft).to have_attributes(title: "渋谷のカフェ", body: "本文。")
+    expect(described_class.title_for(Content::KnowledgePack.for(site, page_type: "faq"))).to eq("よくある質問")
   end
 end

@@ -21,5 +21,31 @@ module Content
       n = loose(needle)
       n.present? && loose(haystack).include?(n)
     end
+
+    DIGITS = /[0-9０-９]+/
+
+    # Does `words` (the owner's own text) account for `statement`?
+    #   - statement ⊆ words: yes (a fragment of what they said)
+    #   - words ⊆ statement: only if words cover most of it and the statement
+    #     adds no numbers of its own — otherwise the extra part is the model's.
+    def covers?(words, statement, min_ratio: 0.8, min_bigram_ratio: 0.85)
+      w = loose(words)
+      st = loose(statement)
+      return false if w.blank? || st.blank?
+      return true if w.include?(st)
+      return false if (st.scan(DIGITS) - w.scan(DIGITS)).any?
+      return w.length.to_f / st.length >= min_ratio if st.include?(w)
+
+      # A light rephrasing (「仕入れて自分で焙煎しています」→「仕入れています」):
+      # nearly every character pair of the statement occurs in the owner's text.
+      bigram_containment(st, w) >= min_bigram_ratio
+    end
+
+    def bigram_containment(statement, words)
+      grams = statement.each_char.each_cons(2).map(&:join)
+      return 0.0 if grams.empty?
+
+      grams.count { |g| words.include?(g) }.to_f / grams.size
+    end
   end
 end
