@@ -22,10 +22,9 @@ RSpec.describe "First-run setup", type: :system do
     fill_in "ドメイン", with: "https://cafe.example/menu?x=1"
     click_button "設定を完了する"
 
-    expect(page).to have_current_path(admin_root_path)
+    expect(page).to have_current_path(admin_interview_path)
     expect(page).to have_content("初期設定が完了しました")
-    expect(page).to have_css("dd", text: "渋谷のカフェ")
-    expect(page).to have_css("dd", text: "cafe.example")
+    expect(page).to have_content("あなたの役割を教えてください")
     expect(page).to have_button("ログアウト")
 
     expect(User.pick(:email_address)).to eq("admin@example.com")

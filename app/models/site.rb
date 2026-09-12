@@ -16,6 +16,11 @@ class Site < ApplicationRecord
   validate :only_one_site
 
   has_many :site_archetypes, dependent: :destroy
+  has_many :sources, dependent: :destroy
+  has_many :interviews, dependent: :destroy
+
+  def current_interview = interviews.order(:created_at).last
+  def interview_pending? = current_interview.nil? || !current_interview.completed?
 
   def self.current = first
 

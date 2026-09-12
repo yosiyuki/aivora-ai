@@ -6,4 +6,8 @@ section.card
     dd = @site.name
     dt = t("attributes.domain")
     dd = @site.domain
-  p.lead = t("admin.dashboard.next_step")
+  - if @site.interview_pending?
+    p.lead = t("admin.dashboard.interview_pending")
+    = link_to t("admin.dashboard.continue_interview"), admin_interview_path, class: "button"
+  - else
+    p.lead = t("admin.dashboard.next_step")

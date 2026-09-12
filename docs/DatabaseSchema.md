@@ -83,6 +83,38 @@ sessions
 `users.id` を参照する。パスワードリセットは SMTP を要件にしないため画面を持たず、
 `bin/rails users:reset_password[email]` で行う。
 
+### 3.2 interviews / interview_turns（v2.0 実装時に追加）
+
+初期設定ヒアリングの対話状態。**対話ログは Knowledge ではない**（README §27.6）ため、
+回答本文は同時に `source_items`（`sources.source_type = interview`、`trust_level = owner`）にも書き、
+Extraction Agent はそちらだけを読む。
+
+```text
+interviews
+- id
+- site_id
+- status               # in_progress / ready / completed / abandoned
+- archetype_hypothesis # Extraction Agent が更新
+- archetype_confidence
+- slot_state           # { slot_key: { value, source_item_id, confidence } }
+- question_count       # 上限 10
+- started_at
+- completed_at
+
+interview_turns
+- id
+- interview_id
+- position
+- question_text
+- examples             # 長さの異なる例 3 つ（選択肢ではない）
+- question_kind        # role / topic / purpose / open / clarify / slot:<key>
+- answer_text
+- answered_at
+- source_item_id       # 回答を書いた source_items 行
+```
+
+終了判定（minimum スロット充足 / 10 問）はコードが行い、LLM は行わない。
+
 ## 4. sources
 
 ```text

@@ -29,7 +29,7 @@ class SetupController < ApplicationController
   def create_site
     @site = Site.new(site_params)
     if @site.save
-      redirect_to admin_root_path, notice: t("setup.completed")
+      redirect_to admin_interview_path, notice: t("setup.completed")
     else
       render :site, status: :unprocessable_entity
     end

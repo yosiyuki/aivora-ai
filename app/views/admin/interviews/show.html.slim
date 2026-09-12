@@ -1,0 +1,23 @@
+- content_for :title, t("interview.title")
+section.card.interview
+  p.step = t("interview.progress.#{@runner.progress_key}")
+  - if @turn
+    h1 = @turn.question_text
+    ul.examples aria-label=t("interview.examples_label")
+      - @turn.examples.each do |example|
+        li = example
+    = form_with url: answer_admin_interview_path, method: :post do |form|
+      = form.hidden_field :turn_id, value: @turn.id
+      .field
+        = form.label :answer, t("interview.answer_label"), class: "visually-hidden"
+        = form.text_area :answer, rows: 6, required: true, autofocus: true, placeholder: t("interview.placeholder")
+      .actions
+        = form.submit t("interview.send")
+  - else
+    h1 = t("interview.no_more_questions")
+    p.lead = t("interview.no_more_questions_lead")
+  - if @runner.can_finish?
+    .finish
+      = button_to t("interview.finish.#{@runner.progress_key}"), finish_admin_interview_path,
+        method: :post, class: "secondary"
+  p.later = link_to t("interview.later"), admin_root_path

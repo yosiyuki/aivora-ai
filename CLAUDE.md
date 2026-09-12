@@ -199,6 +199,12 @@ site — a checkbox answer can never appear in an article, but the user's own wo
   shop's location is needed whoever runs it.
 - First run: **input source present → start by ingesting; absent → generate one article from the interview
   alone**.
+- Implementation: `Interviewing::Runner` hands out one question at a time from a `QuestionSource`
+  (`FixedQuestionSource` asks the fixed opening three — role, topic, purpose — plus generic follow-ups;
+  the LLM-backed source lands in #15). Every answer is written twice on purpose: to `interview_turns`
+  (conversation state, for resume) and to `source_items` under the owner-trusted `interview` source (the
+  only input the Extraction Agent reads). Readiness and the ten-question cap are decided in
+  `Interview` / `Runner`, never by the model.
 
 ## Site structure is derived, never chosen
 

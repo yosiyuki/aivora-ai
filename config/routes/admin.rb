@@ -3,6 +3,10 @@ get "admin/up" => "rails/health#show", as: :admin_health_check
 
 namespace :admin do
   root "dashboard#show"
+  resource :interview, only: :show do
+    post :answer
+    post :finish
+  end
 end
 
 resource :session, only: %i[new create destroy]
