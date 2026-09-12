@@ -48,6 +48,8 @@ class Interview < ApplicationRecord
 
       update!(status: "completed", completed_at: Time.current)
       site.update!(status: "active") if site.status == "setup"
+      # Enqueued inside the transaction: Active Job defers it to after commit.
+      Content::GenerateJob.perform_later(site.id, "top")
     end
     self
   end

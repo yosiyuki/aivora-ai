@@ -44,6 +44,32 @@ class ContentItem < ApplicationRecord
   # Nothing is deleted: the published version stays referenced for restore.
   def unpublish! = update!(status: "unpublished")
 
+  # Atomic claim for background generation. Ensures the row exists, then
+  # moves it to `generating` only if it is not already there (conditional
+  # UPDATE, so concurrent jobs cannot both proceed). Returns [item, previous
+  # status] or nil when another job holds the claim.
+  def self.claim_for_generation!(site, page_type)
+    item = site.content_items.find_or_create_by!(url: url_for(page_type)) do |i|
+      i.archetype_page_type = page_type.to_s
+      i.content_type = "page"
+    end
+    previous = item.status
+    claimed = where(id: item.id).where.not(status: "generating").update_all(status: "generating", updated_at: Time.current) == 1
+    claimed ? [ item.reload, previous ] : nil
+  end
+
+  # A model failure leaves a trace the review UI can show, and hands the row
+  # back in the state it was claimed from.
+  def record_generation_failure!(error, restore_status:)
+    transaction do
+      versions.create!(body: "（生成できませんでした）", grounding_status: "failed", source: versions.exists? ? "regenerated" : "generated",
+                       metadata: { "error" => { "class" => error.class.name, "message" => error.message.to_s.first(500) } })
+      update!(status: restore_status)
+    end
+  end
+
+  def failed_last? = latest_version&.failed?
+
   private
 
   def url_is_immutable

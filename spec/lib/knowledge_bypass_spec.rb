@@ -8,7 +8,8 @@ RSpec.describe "Knowledge tables are never written through bypass APIs" do
   BYPASS = /\.(delete_all|update_all|update_columns|update_column|insert_all|upsert_all|delete)\b(?!\?)/
   ALLOWED = {
     "app/models/site.rb" => [ "site_archetypes.primary.update_all" ],   # site_archetypes is site state, not knowledge
-    "app/models/interview_turn.rb" => [ 'extraction_status: "pending").update_all' ]  # the atomic extraction claim; not knowledge
+    "app/models/interview_turn.rb" => [ 'extraction_status: "pending").update_all' ],  # the atomic extraction claim; not knowledge
+    "app/models/content_item.rb" => [ 'where.not(status: "generating").update_all' ]    # the atomic generation claim; page state, not knowledge
   }.freeze
 
   it "finds no bypass call in models, concerns, or the extraction pipeline" do
