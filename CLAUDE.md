@@ -264,6 +264,14 @@ Content::Generator#generate!                    # one transaction: version + cla
   weight, so truncation drops the least important first.
 - Editorial prohibitions (`app/prompts/content/editorial_policy.txt`) are product-fixed and embedded in
   both prompts.
+- **Generation runs in the background.** `Interview#complete!` enqueues `Content::GenerateJob` (Active Job
+  defers the enqueue to after commit). The job claims the page with a conditional update
+  (`ContentItem.claim_for_generation!`, `status: generating`), so duplicate enqueues yield one version; an
+  `Llm::Error` becomes a failed version with the error in `metadata`, never a blind retry. In development
+  nothing is generated until `bin/jobs` is running; specs use `perform_enqueued_jobs`.
+- `/admin/content_items` is observation only: versions, the published one, blanks shown by slot **label**
+  (never the key), a single "もう一度作る" button. `Content::Renderer` turns Markdown into sanitised HTML
+  and renders `[[slot:key]]` as 「（確認中）」; the public pages (#6) use the same renderer.
 
 ## Site structure is derived, never chosen
 

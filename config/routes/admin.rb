@@ -7,6 +7,9 @@ namespace :admin do
     post :answer
     post :finish
   end
+  resources :content_items, only: %i[index show] do
+    post :regenerate, on: :member
+  end
 end
 
 resource :session, only: %i[new create destroy]

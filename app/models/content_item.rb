@@ -8,6 +8,7 @@ class ContentItem < ApplicationRecord
 
   belongs_to :site
   has_many :versions, -> { order(:version) }, class_name: "ContentVersion", dependent: :restrict_with_exception
+  has_one :latest_version, -> { order(version: :desc) }, class_name: "ContentVersion"
   belongs_to :published_version, class_name: "ContentVersion", optional: true
 
   attr_readonly :url
@@ -33,7 +34,6 @@ class ContentItem < ApplicationRecord
 
   def published? = status == "published"
   def generating? = status == "generating"
-  def latest_version = versions.last
   def next_version_number = versions.maximum(:version).to_i + 1
 
   # The only way a page becomes published, or points at a new version.
@@ -55,6 +55,55 @@ class ContentItem < ApplicationRecord
   def append_version!(attributes)
     with_lock { versions.create!(attributes.merge(version: next_version_number)) }
   end
+
+  GENERATION_LEASE = 30.minutes
+
+  # Claim for background generation, under the row lock: previous status and
+  # the claim are read and written in one step, so a state change that lands
+  # in between cannot be overwritten later. A claim older than the lease is
+  # treated as abandoned (crashed worker) and can be taken over. Returns
+  # [item, token, previous_status] or nil.
+  def self.claim_for_generation!(site, page_type)
+    item = site.content_items.find_or_create_by!(url: url_for(page_type)) do |i|
+      i.archetype_page_type = page_type.to_s
+      i.content_type = "page"
+    end
+    item.with_lock do
+      return nil if item.generating? && item.updated_at > GENERATION_LEASE.ago
+
+      previous = item.generating? ? (item.generation_previous_status.presence || "draft") : item.status
+      token = SecureRandom.hex(8)
+      item.update!(status: "generating", generation_token: token, generation_previous_status: previous)
+      [ item, token, previous ]
+    end
+  end
+
+  # Hands the row back only if this claim still holds it (token match).
+  # Returning to `published` is a restore of the state the page already had
+  # (pointer unchanged), so it is allowed here without going through publish!.
+  def release_generation!(token, to:)
+    with_lock do
+      return false unless generating? && generation_token == token
+
+      @publishing = true if to == "published" && published_version.present?
+      update!(status: to, generation_token: nil, generation_previous_status: nil)
+      true
+    ensure
+      @publishing = false
+    end
+  end
+
+  # A failure after the claim leaves a trace the review UI can show.
+  def record_generation_failure!(error, token:, restore_status:)
+    transaction do
+      append_version!(body: "（生成できませんでした）", source: versions.exists? ? "regenerated" : "generated",
+                      metadata: { "error" => { "class" => error.class.name, "message" => error.message.to_s.first(500) } })
+        .decide!(:failed)
+      release_generation!(token, to: restore_status)
+    end
+  end
+
+  def failed_last? = latest_version&.failed?
 
   private
 

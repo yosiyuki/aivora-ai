@@ -42,6 +42,22 @@ RSpec.describe Interview, type: :model do
     expect(site.reload.status).to eq("active")
     expect(interview.complete!).to eq(interview), "completing twice is a no-op"
   end
+
+  it "enqueues the first page after commit, and not when the completion rolls back" do
+    runner = Interviewing::Runner.new(interview)
+    3.times { |i| runner.answer!("答え #{i}") }
+    expect { interview.complete! }.to have_enqueued_job(Content::GenerateJob).with(site.id, "top")
+
+    other = site.interviews.create!
+    Interviewing::Runner.new(other).tap { |r| 3.times { |i| r.answer!("答え #{i}") } }
+    expect do
+      ActiveRecord::Base.transaction do
+        other.complete!            # perform_later runs here...
+        raise ActiveRecord::Rollback   # ...and the transaction is rolled back
+      end
+    end.not_to have_enqueued_job(Content::GenerateJob)
+    expect(other.reload).not_to be_completed
+  end
   it "has exactly one owner-trusted interview source per site, whatever state it is found in" do
     a = Source.interview_for(site)
     a.update_columns(trust_level: "external", enabled: false)

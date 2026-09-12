@@ -9,5 +9,11 @@ section.card
   - if @site.interview_pending?
     p.lead = t("admin.dashboard.interview_pending")
     = link_to t("admin.dashboard.continue_interview"), admin_interview_path, class: "button"
+  - elsif @top_page.nil? || @top_page.generating?
+    p.lead = t("admin.dashboard.generating")
+  - elsif @top_page.published?
+    p.lead = t("admin.dashboard.published")
+    = link_to t("admin.dashboard.view_page"), admin_content_item_path(@top_page), class: "button"
   - else
-    p.lead = t("admin.dashboard.next_step")
+    p.lead = t("admin.dashboard.generation_failed")
+    = button_to t("content.regenerate"), regenerate_admin_content_item_path(@top_page), method: :post
