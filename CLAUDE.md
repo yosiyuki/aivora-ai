@@ -254,7 +254,10 @@ goal interview   → archetype → page structure + required knowledge slots
   opening time is critical for `business` and irrelevant for `media`. Knowledge Health is computed against
   the archetype's slots, not a global list.
 
-**Published URLs are immutable** (`DatabaseSchema.md` §69). Adding an archetype adds structure; it never
+**Published URLs are immutable** (`DatabaseSchema.md` §69). In code: `ContentItem` has `attr_readonly :url`
+plus a validation that rejects any change; `ContentItem#publish!(version)` accepts only a version whose
+`grounding_status` is `passed`; versions are appended and become read-only once grounding is decided;
+`unpublish!` changes status and keeps the published pointer. Adding an archetype adds structure; it never
 moves an existing URL, and knowledge changes never delete a page (status changes instead). A system that
 detects content decay must not generate its own.
 
