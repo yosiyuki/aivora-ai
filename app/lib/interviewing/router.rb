@@ -125,7 +125,7 @@ module Interviewing
 
     # Whitespace-insensitive containment check: the model's span must occur in
     # the raw answer. Returns the normalised span, or nil.
-    def normalize(text) = text.to_s.gsub(/[[:space:]]+/, "").unicode_normalize(:nfkc).downcase
+    def normalize(text) = Content::TextNormalizer.normalize(text)
 
     def grounded_span(source_text, raw)
       span = normalize(source_text)

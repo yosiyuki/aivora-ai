@@ -41,7 +41,9 @@ docker compose up --build                  # PaaS shape locally: db + web + publ
 ```
 
 Local PostgreSQL: `docker compose up db` starts PostgreSQL 18 on port 5433; point at it with
-`PGHOST=localhost PGPORT=5433 PGUSER=postgres PGPASSWORD=postgres`. The `postgres` service bundles
+`PGHOST=localhost PGPORT=5433 PGUSER=postgres PGPASSWORD=postgres`. `dotenv-rails` loads `.env.local`
+(gitignored) in development and test, so `LLM_API_KEY` and the `PG*` variables can live there; specs
+tagged `:live` still need `LIVE_LLM=1` on the command line. The `postgres` service bundles
 pgvector but nothing enables it — PostgreSQL alone is the requirement.
 
 ## Deployment shape (load-bearing)
@@ -229,6 +231,39 @@ site — a checkbox answer can never appear in an article, but the user's own wo
   (conversation state, for resume) and to `source_items` under the owner-trusted `interview` source (the
   only input the Extraction Agent reads). Readiness and the ten-question cap are decided in
   `Interview` / `Runner`, never by the model.
+
+## Generating a page
+
+Two LLM calls per page, then code decides (`app/lib/content/`, README §21):
+
+```text
+Content::KnowledgePack.for(site, page_type:)   # code: accepted Facts (F1..), Experiences (E1..), goals, slots
+Content::Drafter#draft                          # LLM drafting: Markdown from the pack only; missing facts → [[slot:key]]
+Content::ClaimExtractor#extract(body)           # LLM grounding: statements + kind + support ref (structured)
+Content::Grounder#ground(body:, claims:)        # code: grounded / blank / excised / general, sentence removal
+Content::Generator#generate!                    # one transaction: version + claims, publish! only if passed
+```
+
+- The model never sees DB ids — only short refs; `Grounder` resolves refs back through the pack.
+- **Grounding is fail-closed.** Every sentence, list item and heading must be covered by a claim; anything
+  the extractor did not cover is removed. A verifiable claim is grounded only if the referenced Fact's
+  value occurs in the sentence **and the sentence adds no numbers the pack does not know**
+  (numeric or one-character values also need their slot label nearby). A sentence in the owner's own
+  words is grounded as experiential whatever the model called it, but a reference alone never counts:
+  the text must match (`TextNormalizer.covers?` — fragment of the owner's text, or the owner's text
+  covering ≥ 80% of the sentence with no new digits). `general` is trusted only for text with nothing
+  site-specific in it; numbers, prices, superlatives or the subject's name make it verifiable.
+- Ungrounded verifiable → sentence removed, `[[slot:key]]` left when a real slot fits (`blank`),
+  otherwise just removed (`excised`). Unknown placeholder keys drop the whole line. A heading that is
+  uncovered, ungrounded or carries a placeholder fails the version (short label headings such as
+  「どんなお店か」 are structural and kept). A failed version is stored but never published; an LLM error
+  creates no version at all.
+- **Titles are generated in code** (`Content::Drafter.title_for`: the subject's name, 「よくある質問」…);
+  the model's title is never used because it is not grounded and goes into the public `<title>`.
+- `Content::KnowledgePack` is scoped to the page's subject (the primary entity) and orders facts by slot
+  weight, so truncation drops the least important first.
+- Editorial prohibitions (`app/prompts/content/editorial_policy.txt`) are product-fixed and embedded in
+  both prompts.
 
 ## Site structure is derived, never chosen
 
