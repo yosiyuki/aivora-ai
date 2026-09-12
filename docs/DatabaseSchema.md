@@ -497,18 +497,21 @@ author_expertise
 content_items
 - id
 - site_id
-- content_type
-- archetype_page_type  # top / list / detail / article / faq ...
-- external_id
-- url                  # 発行後は不変。変更は REDIRECT のみ
+- content_type         # page / article
+- archetype_page_type  # top / services / faq / news / articles / article ...
+- url                  # 発行後は不変（attr_readonly + validation）。変更は REDIRECT のみ
 - canonical_url
 - language
 - title
-- status
+- status               # draft / generating / published / unpublished
+- published_version_id # grounding を通過した版のみ指せる（ContentItem#publish!）
 - published_at
+- created_at
 - updated_at
-- embedding          # optional
 ```
+
+`top` の URL は `/`、それ以外は `/<page_type>` または `/<page_type>/<slug>`。
+非公開化は status の変更のみで、published_version_id は復帰用に残す。
 
 ## 28. content_versions
 
@@ -516,11 +519,12 @@ content_items
 content_versions
 - id
 - content_item_id
-- version
+- version              # item 内で連番。追記のみ
 - title
-- body
-- metadata
-- source
+- body                 # Markdown。根拠の無い箇所は [[slot:key]]
+- metadata             # knowledge pack の参照 / llm_usage id / 空欄 / エラー
+- source               # generated / regenerated
+- grounding_status     # pending / passed / failed。判定後の版は読み取り専用
 - created_at
 ```
 
@@ -533,13 +537,17 @@ content_claims
 - statement
 - start_offset
 - end_offset
-- knowledge_type
+- claim_kind           # verifiable / experiential / general（README §20）
+- knowledge_type       # Fact / Experience
 - knowledge_id
+- slot_key             # 空欄化した場合のスロット。Verification Request の起点
 - grounded
 - confidence
-- review_status
+- review_status        # grounded / blank / excised / general
 - created_at
 ```
+
+grounded かつ general 以外の主張は knowledge 参照が必須。
 
 ## 30. passages
 
