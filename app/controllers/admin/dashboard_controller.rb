@@ -5,6 +5,7 @@ module Admin
     def show
       @site = Current.site
       @top_page = @site.top_page
+      @usage = Llm::Usage::Report.for(@site)
     end
   end
 end

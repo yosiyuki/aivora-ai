@@ -201,6 +201,26 @@ Emergency Stop are the only safety mechanisms.
 - Every usage row written by a degraded call carries `metadata["degraded"] = true`. The `model` column
   alone cannot distinguish a degrade from a routing change.
 
+`Llm::Usage::Report.for(site)` turns the month into the sentence the dashboard shows.
+
+- **Only generation spend divides into a per-page figure.** `drafting` / `grounding` / `planning` are
+  the variable cost; `extraction` and `entity_resolution` are the fixed cost of observing, and folding
+  them in would make a page look far more expensive than it is.
+- **A failed version is not a page.** It cost money and bought nothing, so `pages_this_month` counts
+  only versions that passed grounding.
+- `cost_per_page` returns nil rather than 0 before anything has been generated, and `remaining_pages`
+  falls back to README §33's conservative figure. Saying "0 more pages" in a site's first month would
+  be wrong.
+- `by_operation` exists for model routing review (§37) and is deliberately **not** shown to the owner —
+  operation names are our vocabulary, not theirs. The dashboard shows pages, a remaining count, the
+  amount in small type, and, while degraded, a sentence saying work continues.
+
+Measured once against a real interview (10 answers) plus one generated page, all on opus: drafting
+$0.039, grounding $0.078, so about **$0.12 a page**, against $0.43 for the interview. Two things that
+matters for later work: grounding costs twice what drafting does (it writes every claim out as
+structured output), and the "$50 buys 3-5 pages" figure is far too conservative — but it stays as the
+first-month estimate until operation-phase costs (verification, updates, sensors) can be measured too.
+
 ## Onboarding shape
 
 Setup is the only interaction the product requires of a human, and **every question in it is free text

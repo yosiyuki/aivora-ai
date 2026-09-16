@@ -17,3 +17,18 @@ section.card
   - else
     p.lead = t("admin.dashboard.generation_failed")
     = button_to t("content.regenerate"), regenerate_admin_content_item_path(@top_page), method: :post
+
+/ What the month's spend bought, in outcomes. No tokens, no model names, no
+/ thresholds: the owner is never asked to predict usage (README §33).
+section.card.usage
+  h2 = t("admin.usage.heading")
+  p.lead = t("admin.usage.pages", count: @usage.pages_this_month)
+  - if @usage.estimated?
+    p = t("admin.usage.estimated", count: @usage.remaining_pages)
+  - else
+    p = t("admin.usage.remaining", count: @usage.remaining_pages)
+  - spent = number_with_precision(@usage.spent, precision: 2)
+  - limit = number_with_precision(@usage.limit, precision: 0)
+  p.amount = t("admin.usage.amount", spent: spent, limit: limit)
+  - if @usage.degraded?
+    p.degraded = t("admin.usage.degraded")
