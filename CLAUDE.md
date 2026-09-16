@@ -271,7 +271,32 @@ Content::Generator#generate!                    # one transaction: version + cla
   nothing is generated until `bin/jobs` is running; specs use `perform_enqueued_jobs`.
 - `/admin/content_items` is observation only: versions, the published one, blanks shown by slot **label**
   (never the key), a single "もう一度作る" button. `Content::Renderer` turns Markdown into sanitised HTML
-  and renders `[[slot:key]]` as 「（確認中）」; the public pages (#6) use the same renderer.
+  and renders `[[slot:key]]` as 「（確認中）」; the public pages use the same renderer.
+
+## Serving the public site
+
+The app is its own output CMS: pages are rendered from the stored version on request, never exported to
+disk or pushed elsewhere (`TechnicalArchitecture.md` §22, §45).
+
+- `Public::PagesController` resolves a page by **the URL it was issued** (`ContentItem#url`), never by
+  rebuilding a path from params. Only a trailing slash is forgiven. This is what keeps URLs immutable
+  (§23) at the serving end.
+- **Visibility is `status`, never the pointer.** `ContentItem.published` filters `status: "published"`;
+  `unpublish!` keeps `published_version_id` for restore, so a page gated on the pointer would stay
+  visible after being unpublished. `draft`, `generating`, `unpublished` and failed-only pages all 404.
+- `config/routes/public.rb` ends in a catch-all, so `routes.rb` draws **admin first** — reversing that
+  order makes the catch-all swallow every admin path. `spec/config/deployment_constraints_spec.rb`
+  fails if it regresses.
+- `layouts/public.html.slim` is deliberately separate from the admin layout: the public role has no
+  session routes and visitors get none of the admin chrome. It emits `canonical` and `lang`, and
+  **no meta description** — a summary of the body would be ungrounded text (README §20).
+- `Public::Navigation.for(site)` derives the menu from the archetypes' `page_structure`, keeping only
+  page types that have a published item, labelled through `page_types` in `ja.yml` (users never see a
+  page type key). Adding an archetype adds entries; it never moves an existing URL.
+- **Blanks stay visible on the public page.** 「（確認中）」 is how the owner is asked to fill a
+  verifiable fact (README §14); hiding it would remove the mechanism Verification Requests hang off.
+- `fresh_when(@version)` is safe because a decided `ContentVersion` is read-only, so its ETag only
+  changes when the page is regenerated.
 
 ## Site structure is derived, never chosen
 

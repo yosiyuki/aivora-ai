@@ -1,0 +1,29 @@
+doctype html
+/ The public site. Deliberately separate from the admin layout: the public
+/ role has no session routes, and visitors get none of the admin assets.
+html lang=(@item&.language || @site&.primary_language || I18n.default_locale)
+  head
+    title = yield(:title).presence || @site&.name
+    meta name="viewport" content="width=device-width,initial-scale=1"
+    / No generated meta description: a summary of the body would be text with
+    / no grounding behind it (README §20).
+    - if @item
+      link rel="canonical" href=(@item.canonical_url.presence || @item.url)
+    = stylesheet_link_tag :app, "data-turbo-track": "reload"
+  body.public
+    header.public-header
+      - if @site
+        p.site-name = link_to @site.name, root_path
+      - if @navigation.present?
+        nav.public-nav
+          ul
+            - @navigation.each do |entry|
+              li
+                - if @item && entry.url == @item.url
+                  span.current aria-current="page" = entry.label
+                - else
+                  = link_to entry.label, entry.url
+    main.public-main = yield
+    footer.public-footer
+      - if @site
+        small = @site.name

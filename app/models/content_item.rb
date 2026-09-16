@@ -13,6 +13,11 @@ class ContentItem < ApplicationRecord
 
   attr_readonly :url
 
+  # Publicly visible pages. Gate on status, never on published_version_id:
+  # unpublish! keeps the pointer so the page can be restored, so an
+  # unpublished page still has one.
+  scope :published, -> { where(status: "published") }
+
   validates :content_type, inclusion: { in: CONTENT_TYPES }
   validates :status, inclusion: { in: STATUSES }
   validates :archetype_page_type, presence: true

@@ -84,4 +84,21 @@ RSpec.describe ContentItem, type: :model do
     expect(v2.reload).to be_persisted
     expect { item.destroy! }.to raise_error(ActiveRecord::DeleteRestrictionError)
   end
+
+  describe ".published" do
+    it "returns only published pages, and keeps out one that was unpublished" do
+      site = cafe_site
+      published = site.content_items.create!(archetype_page_type: "faq", url: "/faq")
+      published.publish!(published.append_version!(body: "x").tap { |v| v.decide!(:passed) })
+      draft = site.content_items.create!(archetype_page_type: "news", url: "/news")
+
+      expect(described_class.published).to contain_exactly(published)
+
+      published.unpublish!
+
+      expect(described_class.published).to be_empty
+      expect(published.reload.published_version).to be_present, "the pointer survives for restore"
+      expect(draft.reload.status).to eq("draft")
+    end
+  end
 end

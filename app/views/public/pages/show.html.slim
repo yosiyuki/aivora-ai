@@ -1,0 +1,4 @@
+- content_for :title, @version.title.presence || @site.name
+article.public-page
+  h1 = @version.title.presence || @site.name
+  .public-body = Content::Renderer.render(@version.body)
