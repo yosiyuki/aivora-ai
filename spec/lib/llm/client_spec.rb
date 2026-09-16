@@ -59,4 +59,69 @@ RSpec.describe Llm::Client do
     Llm::Fake.respond(:drafting) { "本文" }
     expect(described_class.for(:drafting).generate(system: "s", messages: [ { role: :user, content: "書いて" } ])).to eq("本文")
   end
+
+  describe "degrading when the month's budget is spent" do
+    def overspend!(site)
+      LlmUsage.create!(site: site, operation_type: "drafting", model: "claude-opus-5",
+                       estimated_cost: site.policy.monthly_budget + 1)
+      Current.llm_budgets = nil
+    end
+
+    it "uses the primary model while the budget holds" do
+      site = create_site
+
+      expect(described_class.for(:drafting, site: site).model).to eq("claude-opus-5")
+      expect(described_class.for(:drafting, site: site)).not_to be_degraded
+    end
+
+    it "switches to the smaller model once the budget is spent" do
+      site = create_site
+      overspend!(site)
+
+      client = described_class.for(:drafting, site: site)
+
+      expect(client.model).to eq("claude-sonnet-5")
+      expect(client).to be_degraded
+    end
+
+    it "keeps grounding on a mid model rather than the cheapest one" do
+      site = create_site
+      overspend!(site)
+
+      expect(described_class.for(:grounding, site: site).model).to eq("claude-sonnet-5")
+    end
+
+    it "records the degradation, which the model column alone cannot show" do
+      site = create_site
+      overspend!(site)
+      Llm::Fake.respond(:drafting) { "本文" }
+
+      described_class.for(:drafting, site: site).generate(system: "s", messages: [ { role: :user, content: "x" } ])
+
+      expect(LlmUsage.last.metadata).to include("degraded" => true)
+      expect(LlmUsage.last.model).to eq("claude-sonnet-5")
+    end
+
+    it "does not flag a call that ran on the primary model" do
+      site = create_site
+      Llm::Fake.respond(:drafting) { "本文" }
+
+      described_class.for(:drafting, site: site).generate(system: "s", messages: [ { role: :user, content: "x" } ])
+
+      expect(LlmUsage.last.metadata).not_to include("degraded")
+    end
+
+    it "keeps the primary model for an operation with no degraded model configured" do
+      site = create_site
+      overspend!(site)
+      routing = Rails.application.config.x.llm.routing
+      operations = routing[:operations].merge(drafting: routing[:operations][:drafting].except(:degraded_model))
+      allow(Rails.application.config.x.llm).to receive(:routing).and_return(routing.merge(operations: operations))
+
+      client = described_class.for(:drafting, site: site)
+
+      expect(client.model).to eq("claude-opus-5")
+      expect(client).not_to be_degraded
+    end
+  end
 end

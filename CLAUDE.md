@@ -178,6 +178,29 @@ table as **control data, not telemetry**.
 - Present cost to users as outcomes, never as raw spend targets ("月$50なら記事3〜5本"). Users are not
   asked to predict their usage.
 
+In code: the ceiling lives in `site_policies` (`DatabaseSchema.md` §55, reached through `Site#policy`,
+which creates the row with the conservative default rather than letting a site run uncapped). That table
+is the home of every aggregate limit, not just money — with no per-action approval those caps and
+Emergency Stop are the only safety mechanisms.
+
+- `Llm::Budget.for(site)` answers `spent` / `limit` / `exceeded?` / `degraded?`. It is memoised on
+  `Current` for the length of a request or job, so generating one page runs the monthly aggregate once
+  instead of once per LLM call.
+- **Failed calls count against the budget.** A refusal or a truncated answer is still billed and
+  `LlmUsage` records the billed cost for exactly that reason, so the aggregate never filters on
+  `succeeded`.
+- **The month is the site's month.** `Llm::Budget#month_range` wraps `Time.use_zone(site.timezone)`;
+  `LlmUsage.this_month` uses `Time.zone` and would shift the boundary by the server's offset.
+- **Degrading is configuration, not code.** Each operation in `config/llm.yml` carries a
+  `degraded_model`; `Llm::Client.for` picks it when the budget is spent. `grounding` degrades to a mid
+  model, never the cheapest — prose may get worse while the budget is spent, evidence verification may
+  not. An operation with no `degraded_model` keeps its primary model.
+- `budget_action` accepts `degrade | stop` per the schema doc, but **Phase 1 always degrades**
+  (`SitePolicy#degrade_only?`). Stopping would stop observation too, and stale facts would go
+  undetected while the site keeps serving them.
+- Every usage row written by a degraded call carries `metadata["degraded"] = true`. The `model` column
+  alone cannot distinguish a degrade from a routing change.
+
 ## Onboarding shape
 
 Setup is the only interaction the product requires of a human, and **every question in it is free text
