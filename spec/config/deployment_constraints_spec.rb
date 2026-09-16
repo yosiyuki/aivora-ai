@@ -49,4 +49,16 @@ RSpec.describe "Deployment constraints" do
     end
     expect(root.join("bin/process")).to be_executable
   end
+
+  it "serves generated pages from the app on every HTTP role, admin only on web" do
+    public_routes = root.join("config/routes/public.rb").read
+    expect(public_routes).to include("public/pages#show")
+
+    # The catch-all must be drawn after the admin routes or it swallows them.
+    main = root.join("config/routes.rb").read
+    expect(main.index("draw(:admin)")).to be < main.index("draw(:public)")
+
+    # Pages are rendered on request, not exported to disk (§45).
+    expect(public_routes).not_to match(/send_file|Dir\.|File\.write/)
+  end
 end

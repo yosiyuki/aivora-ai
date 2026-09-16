@@ -151,3 +151,21 @@ ja:
       almost: ここまでで一度ページを作る
       ready: ページを作る
       capped: ページを作る
+  # Page type labels for the public navigation. Users never see the key itself
+  # (README §27), so every page_structure entry needs a label here.
+  page_types:
+    top: ホーム
+    services: サービス
+    faq: よくある質問
+    news: お知らせ
+    articles: 記事
+    categories: カテゴリ
+    article: 記事
+    topics: トピック
+    question: 質問
+    works: 制作物
+    profile: プロフィール
+  public:
+    not_found:
+      title: ページが見つかりません
+      body: お探しのページは公開されていないか、存在しません。
