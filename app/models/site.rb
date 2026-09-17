@@ -15,6 +15,7 @@ class Site < ApplicationRecord
   validates :status, inclusion: { in: STATUSES }
   validate :only_one_site
 
+  has_one :site_policy, dependent: :destroy
   has_many :site_archetypes, dependent: :destroy
   has_many :sources, dependent: :destroy
   has_many :interviews, dependent: :destroy
@@ -29,6 +30,10 @@ class Site < ApplicationRecord
   has_many :goals, dependent: :restrict_with_exception
   has_many :content_items, dependent: :restrict_with_exception
   belongs_to :primary_entity, class_name: "Entity", optional: true
+
+  # Limits always exist: a site without a policy row is a site with no budget
+  # ceiling, which is the one default that must never happen silently.
+  def policy = site_policy || create_site_policy!
 
   def current_interview = interviews.order(:created_at).last
   def top_page = content_items.find_by(archetype_page_type: "top")

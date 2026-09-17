@@ -10,12 +10,18 @@ default: &default
   # request, the API retries on a fallback chosen by refusal category, so an
   # extraction is not lost to a classifier false positive. Set false to disable.
   fallbacks: true
+  #
+  # degraded_model is what an operation falls back to once the month's budget
+  # is spent (#32). Overrun degrades, it never stops: stopping would stop
+  # observation too, and stale facts would go undetected (README §33).
+  # grounding degrades to sonnet rather than haiku on purpose — prose quality
+  # may drop while the budget is spent, evidence verification may not.
   operations:
-    extraction:        { model: claude-opus-5, effort: medium, max_tokens: 4096 }
-    entity_resolution: { model: claude-opus-5, effort: medium, max_tokens: 2048 }
-    planning:          { model: claude-opus-5, effort: high,   max_tokens: 8192 }
-    drafting:          { model: claude-opus-5, effort: high,   max_tokens: 16000 }
-    grounding:         { model: claude-opus-5, effort: medium, max_tokens: 4096 }
+    extraction:        { model: claude-opus-5, degraded_model: claude-haiku-4-5, effort: medium, max_tokens: 4096 }
+    entity_resolution: { model: claude-opus-5, degraded_model: claude-haiku-4-5, effort: medium, max_tokens: 2048 }
+    planning:          { model: claude-opus-5, degraded_model: claude-sonnet-5,  effort: high,   max_tokens: 8192 }
+    drafting:          { model: claude-opus-5, degraded_model: claude-sonnet-5,  effort: high,   max_tokens: 16000 }
+    grounding:         { model: claude-opus-5, degraded_model: claude-sonnet-5,  effort: medium, max_tokens: 4096 }
 
 development:
   <<: *default

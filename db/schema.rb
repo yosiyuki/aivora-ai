@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_12_030000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -308,6 +308,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_12_030000) do
     t.index ["site_id"], name: "index_site_archetypes_one_primary_per_site", unique: true, where: "is_primary"
   end
 
+  create_table "site_policies", force: :cascade do |t|
+    t.string "budget_action", default: "degrade", null: false
+    t.datetime "created_at", null: false
+    t.integer "max_links_changed_per_day"
+    t.integer "max_new_pages_per_week"
+    t.integer "max_pages_changed_per_day"
+    t.integer "max_redirects_per_batch"
+    t.decimal "max_site_change_ratio", precision: 5, scale: 4
+    t.decimal "monthly_budget", precision: 10, scale: 2, default: "50.0", null: false
+    t.bigint "site_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["site_id"], name: "index_site_policies_on_site_id", unique: true
+  end
+
   create_table "sites", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "domain", null: false
@@ -541,6 +555,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_12_030000) do
   add_foreign_key "questions", "sites"
   add_foreign_key "sessions", "users"
   add_foreign_key "site_archetypes", "sites"
+  add_foreign_key "site_policies", "sites"
   add_foreign_key "sites", "entities", column: "primary_entity_id"
   add_foreign_key "solid_queue_batch_executions", "solid_queue_batches", column: "batch_id", on_delete: :cascade
   add_foreign_key "solid_queue_batch_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

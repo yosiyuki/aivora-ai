@@ -55,4 +55,42 @@ RSpec.describe Content::Generator do
     expect(ContentVersion.count).to eq(0)
     expect(LlmUsage.sole).not_to be_succeeded
   end
+
+  describe "while the month's budget is spent" do
+    before do
+      LlmUsage.create!(site: site, operation_type: "drafting", model: "claude-opus-5",
+                       estimated_cost: site.policy.monthly_budget + 1)
+      Current.llm_budgets = nil
+    end
+
+    it "still removes an ungrounded sentence and refuses to publish" do
+      pack = Content::KnowledgePack.for(site, page_type: "top")
+      grounded = { "statement" => "場所は渋谷です。", "kind" => "verifiable",
+                   "support" => { "ref" => pack.facts.first.ref }, "slot_key" => "location", "confidence" => 0.95 }
+      stub_generation(draft: <<~MD, claims: [ grounded ])
+        # 渋谷のカフェ
+
+        場所は渋谷です。当店は渋谷で一番人気のカフェです。
+      MD
+
+      version = described_class.new(site, page_type: "top").generate!
+
+      expect(version.body).not_to include("一番人気"), "grounding is never skipped, budget or not"
+      expect(version.body).to include("渋谷")
+    end
+
+    it "still grounds a page that passes, on the smaller model" do
+      stub_generation
+
+      version = described_class.new(site, page_type: "top").generate!
+
+      expect(version).to be_passed
+      expect(version.claims.where(review_status: "grounded").count).to eq(4)
+      expect(Llm::Fake.calls.map(&:model).uniq).to eq(%w[claude-sonnet-5]),
+        "drafting and grounding both degrade, and grounding stops at the mid model"
+      generated = LlmUsage.where(id: version.metadata["llm_usage_ids"])
+      expect(generated.count).to eq(2)
+      expect(generated.pluck(:metadata).map { |m| m["degraded"] }).to all(be(true))
+    end
+  end
 end
