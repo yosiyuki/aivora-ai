@@ -97,6 +97,24 @@ ja:
       published: 最初のページを公開しました。
       view_page: ページを見る
       generation_failed: ページを作れませんでした。もう一度お試しください。
+    # Cost shown as outcomes, never as a spend target (README §33). Users are
+    # not asked to predict their usage, so no figure here is a goal to hit.
+    usage:
+      heading: 今月の様子
+      pages:
+        zero: 今月はまだページを作っていません
+        one: 今月は %{count} ページ作りました
+        other: 今月は %{count} ページ作りました
+      remaining:
+        zero: 今月はこれ以上作れません
+        one: あと %{count} ページほど作れます
+        other: あと %{count} ページほど作れます
+      estimated:
+        zero: 今月はこれ以上作れない見込みです
+        one: あと %{count} ページほど作れる見込みです
+        other: あと %{count} ページほど作れる見込みです
+      amount: （$%{spent} / $%{limit}）
+      degraded: 今月の予算を使い切ったので、軽いモデルに切り替えて続けています。根拠の確認はこれまでどおり行っています。
   content:
     title: ページ
     none_yet: まだページはありません。
