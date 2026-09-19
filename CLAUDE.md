@@ -43,7 +43,9 @@ docker compose up --build                  # PaaS shape locally: db + web + publ
 Local PostgreSQL: `docker compose up db` starts PostgreSQL 18 on port 5433; point at it with
 `PGHOST=localhost PGPORT=5433 PGUSER=postgres PGPASSWORD=postgres`. `dotenv-rails` loads `.env.local`
 (gitignored) in development and test, so `LLM_API_KEY` and the `PG*` variables can live there; specs
-tagged `:live` still need `LIVE_LLM=1` on the command line. The `postgres` service bundles
+tagged `:live` still need `LIVE_LLM=1` on the command line. `config/database.yml` sets
+`gssencmode: disable`: libpq's GSSAPI negotiation segfaults after `fork` on macOS, which is exactly what
+the Solid Queue supervisor does — without it `bin/jobs` crash-loops locally. The `postgres` service bundles
 pgvector but nothing enables it — PostgreSQL alone is the requirement.
 
 ## Deployment shape (load-bearing)
