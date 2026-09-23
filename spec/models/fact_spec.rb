@@ -50,4 +50,46 @@ RSpec.describe Fact, type: :model do
     expect { fact.destroy! }.to raise_error(ActiveRecord::DeleteRestrictionError)
     expect(Fact.exists?(fact.id)).to be(true)
   end
+
+  describe "slot keys" do
+    it "separates the extraction's wording from the slot it answers" do
+      site = cafe_site
+      fact = site.primary_entity.facts.create!(attribute_key: "主な読者", slot_key: "audience",
+                                               value_json: { "value" => "初めて来る人" }, confidence: 0.9)
+
+      expect(fact.attribute_key).to eq("主な読者"), "the owner's own wording survives"
+      expect(described_class.for_slot("audience")).to include(fact)
+    end
+
+    it "only fills a slot once the fact is accepted" do
+      site = cafe_site
+      fact = site.primary_entity.facts.create!(attribute_key: "主な読者", slot_key: "audience",
+                                               value_json: { "value" => "初めて来る人" }, confidence: 0.9)
+
+      expect(fact).not_to be_fills_slot, "a candidate is the model's word, not the owner's"
+
+      fact.accept!(evidence: owner_evidence(site, text: "初めて来る人に読んでほしい"))
+
+      expect(fact.reload).to be_fills_slot
+    end
+
+    it "is nil for a fact that answers no slot" do
+      site = cafe_site
+      fact = site.primary_entity.facts.create!(attribute_key: "お土産の探し方", value_json: { "value" => "カフェの雑貨" }, confidence: 0.9)
+
+      expect(fact.slot_key).to be_nil
+      expect(fact).not_to be_fills_slot
+    end
+
+    it "carries the slot forward when superseded, so the replacement still fills it" do
+      site = cafe_site
+      fact = site.primary_entity.facts.for_slot("location").first
+
+      replacement = fact.supersede!({ "value" => "神泉" }, evidence: owner_evidence(site, text: "神泉に移転しました"))
+
+      expect(replacement.slot_key).to eq("location")
+      expect(replacement).to be_fills_slot
+      expect(fact.reload.status).to eq("retired")
+    end
+  end
 end

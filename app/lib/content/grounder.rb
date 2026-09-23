@@ -112,7 +112,7 @@ module Content
       value = TextNormalizer.loose(fact.value)
       return true if value.length >= 2 && !value.match?(/\A[0-9]+\z/)
 
-      label = @pack.slot_label(fact.attribute_key)
+      label = @pack.slot_label(fact.slot_key)
       label.present? && TextNormalizer.loose_include?(statement, label)
     end
 
@@ -123,7 +123,7 @@ module Content
 
     # A blank needs a real slot; without one the sentence is simply removed.
     def slot_key_for(claim, fact)
-      key = claim["slot_key"].presence || fact&.attribute_key
+      key = claim["slot_key"].presence || fact&.slot_key
       @pack.slot_keys.include?(key.to_s) ? key.to_s : nil
     end
 

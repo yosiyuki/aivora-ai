@@ -124,10 +124,10 @@ RSpec.describe Content::Grounder do
   end
 
   it "grounds a short numeric value only alongside its slot label" do
-    fact = site.primary_entity.facts.create!(attribute_key: "hours", value_json: { "value" => "7" }, confidence: 0.9)
+    fact = site.primary_entity.facts.create!(attribute_key: "営業時間", slot_key: "hours", value_json: { "value" => "7" }, confidence: 0.9)
     fact.accept!(evidence: owner_evidence(site, text: "7時から"))
     p2 = Content::KnowledgePack.for(site, page_type: "top")
-    ref = p2.facts.find { |x| x.attribute_key == "hours" }.ref
+    ref = p2.facts.find { |x| x.slot_key == "hours" }.ref
     g = described_class.new(p2)
 
     expect(g.ground(body: "週7日開いています。", claims: [ claim("週7日開いています。", kind: "verifiable", ref: ref) ]).claims.sole[:review_status]).to eq("blank")

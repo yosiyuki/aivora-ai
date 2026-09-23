@@ -22,7 +22,7 @@ module Content
     private
 
     def input_for(body)
-      refs = @pack.facts.map { |f| "#{f.ref}: #{f.attribute_key} = #{f.value}" } +
+      refs = @pack.facts.map { |f| "#{f.ref}: #{@pack.slot_label(f.slot_key) || f.attribute_key} = #{f.value}" } +
              @pack.experiences.map { |e| "#{e.ref}: #{e.summary}" }
       "# 材料一覧\n#{refs.join("\n").presence || "（なし）"}\n\n# 本文\n#{body}"
     end

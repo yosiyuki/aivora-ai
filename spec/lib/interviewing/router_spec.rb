@@ -106,4 +106,35 @@ RSpec.describe Interviewing::Router do
     described_class.new(interview).route!(turn, cafe_output)
     expect(site.goals.sole).to have_attributes(archetype: "business", metric: "visits_or_inquiries")
   end
+
+  describe "slot keys on facts" do
+    # The extraction names a fact in the owner's language and separately says
+    # which slot it answers. Both have to survive: the wording is what the page
+    # prints, the slot key is what decides whether the slot is satisfied.
+    it "keeps the model's wording and the slot key apart" do
+      described_class.new(interview).route!(turn, cafe_output(
+        "facts" => [ { "slot" => "location", "attribute" => "お店の場所", "value" => "渋谷",
+                       "source_text" => "渋谷でカフェをやっています", "confidence" => 0.9 } ]
+      ))
+
+      fact = site.reload.primary_entity.facts.sole
+
+      expect(fact.attribute_key).to eq("お店の場所")
+      expect(fact.slot_key).to eq("location")
+      expect(fact).to be_fills_slot
+    end
+
+    it "leaves slot_key null for a fact that answers no slot" do
+      described_class.new(interview).route!(turn, cafe_output(
+        "facts" => [ { "slot" => nil, "attribute" => "お土産の探し方", "value" => "カフェの雑貨",
+                       "source_text" => "渋谷でカフェをやっています", "confidence" => 0.9 } ]
+      ))
+
+      fact = site.reload.primary_entity.facts.sole
+
+      expect(fact.attribute_key).to eq("お土産の探し方")
+      expect(fact.slot_key).to be_nil
+      expect(fact).not_to be_fills_slot
+    end
+  end
 end
