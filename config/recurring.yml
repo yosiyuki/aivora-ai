@@ -13,3 +13,17 @@ production:
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
+
+  # Observation is fixed cost and never stops (README §33). Stopping it means
+  # stale facts go undetected and wrong information stays published, which is
+  # the state this product must avoid. It calls no model, so it costs nothing.
+  verify_fact_staleness:
+    class: Verification::StalenessJob
+    schedule: every day at 3am
+
+  # Answers can arrive from a channel that does not enqueue anything itself
+  # (TechnicalArchitecture §36). The per-answer enqueue is the fast path; this
+  # is the safety net that finds anything it missed.
+  process_verification_answers:
+    class: Verification::ProcessAnswersJob
+    schedule: every hour at minute 37

@@ -100,4 +100,65 @@ RSpec.describe Verification::AnswerProcessor do
     expect(described_class.new(event.reload).process!).to be(false), "already claimed"
     expect(site.primary_entity.facts.for_slot("hours").count).to eq(1)
   end
+
+  describe "answering a recheck" do
+    let(:user) { create_admin }
+
+    def stale_fact(value: "8時-16時")
+      fact = site.primary_entity.facts.create!(attribute_key: "営業時間", slot_key: "hours",
+                                               value_json: { "value" => value }, confidence: 0.9,
+                                               risk_level: "high")
+      fact.accept!(evidence: owner_evidence(site, text: "#{value} で開けています"))
+      fact.update_columns(last_verified_at: 120.days.ago)
+      fact.reload.tap(&:mark_stale!)
+    end
+
+    def recheck_for(fact)
+      site.verification_requests.create!(request_type: "recheck", fact: fact, entity: fact.entity,
+                                         slot_key: "hours", question: "今も合っていますか。", priority: 290)
+    end
+
+    it "brings the fact back into publication when nothing has changed" do
+      fact = stale_fact
+      request = recheck_for(fact)
+      event = request.record_answer!("はい、8時から16時のままです", person_id: VerificationEvent.person_id_for(user))
+      Llm::Fake.respond(:extraction) do
+        { "answered" => true, "value" => "8時-16時", "source_text" => "8時から16時", "confidence" => 0.9 }
+      end
+
+      described_class.new(event).process!
+
+      expect(fact.reload.status).to eq("accepted"), "confirmed, so it is publishable again"
+      expect(fact.last_verified_at).to be_within(5.seconds).of(Time.current)
+      expect(site.primary_entity.facts.for_slot("hours").count).to eq(1), "no duplicate row for the same value"
+    end
+
+    it "supersedes the stale fact when the value has moved on" do
+      fact = stale_fact
+      request = recheck_for(fact)
+      event = request.record_answer!("いまは7時から17時です", person_id: VerificationEvent.person_id_for(user))
+      Llm::Fake.respond(:extraction) do
+        { "answered" => true, "value" => "7時-17時", "source_text" => "7時から17時", "confidence" => 0.9 }
+      end
+
+      described_class.new(event).process!
+
+      expect(fact.reload.status).to eq("retired")
+      expect(fact.valid_until).to be_present
+      current = site.primary_entity.facts.current.for_slot("hours").sole
+      expect(current.value).to eq("7時-17時")
+      expect(current).to be_accepted
+    end
+
+    it "leaves a stale fact stale when the owner does not answer" do
+      fact = stale_fact
+      request = recheck_for(fact)
+      event = request.record_answer!("あとで確認します", person_id: VerificationEvent.person_id_for(user))
+      Llm::Fake.respond(:extraction) { { "answered" => false, "value" => nil, "source_text" => nil, "confidence" => 0.0 } }
+
+      described_class.new(event).process!
+
+      expect(fact.reload.status).to eq("stale"), "still unverified, so still not published"
+    end
+  end
 end

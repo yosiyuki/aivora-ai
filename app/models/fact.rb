@@ -47,6 +47,20 @@ class Fact < ApplicationRecord
     end
   end
 
+  # Not confirmed for long enough that it should stop being published
+  # (Verification::Staleness). The value is kept and the validity window is
+  # left open: this says "nobody has checked recently", not "this is wrong".
+  # Re-accepting through accept! is what reverses it.
+  def mark_stale!(changed_by: nil)
+    return false unless accepted?
+
+    self.changed_by = changed_by
+    self.change_reason = "not verified within its risk window"
+    update!(status: "stale")
+  end
+
+  def stale? = status == "stale"
+
   # Nothing is deleted: superseding a fact closes its validity window.
   def supersede!(new_value_json, evidence:, changed_by: nil)
     transaction do

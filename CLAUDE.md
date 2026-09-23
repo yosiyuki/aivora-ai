@@ -373,6 +373,24 @@ hours?" against a page that visibly lacks them is not.
   `experiences.person_id`, so Slack ids fit later without a migration. `assigned_to` and `due_at` exist
   as columns per §22 and are not read: one deployment has one owner and no way to notify them.
 
+**Facts go stale on a clock, not on a guess.** `Verification::Staleness` compares `last_verified_at`
+against a TTL chosen by `risk_level` (high 90 days, medium 180, low 365) — a wrong opening time sends
+someone to a closed door, a wrong description of what a shop is about does not. `risk_level` was set by
+the interview router and read by nothing until this.
+
+- **Computed, never stored.** Two columns answer the question at any moment; a stored verdict becomes a
+  second truth that disagrees with them the next day. `DatabaseSchema.md` §21 defines `fact_staleness`
+  and §75 leaves it out of the Phase 1 minimum, so it stays unbuilt.
+- `Fact#mark_stale!` stops publication and **leaves `valid_until` open**: unchecked is not wrong.
+  `Fact.current` excludes it, so the page's material loses it and the slot becomes a blank again. The
+  published page is not touched and not regenerated — an owner's answer is worth waiting for.
+- `Verification::StalenessJob` runs nightly and **calls no model**, which is why observation keeps
+  running while the generation budget is spent (README §33). `spec/config/deployment_constraints_spec.rb`
+  fails if an `Llm::` call appears in it.
+- Answering a recheck re-accepts the fact when the value is unchanged (moving `last_verified_at`, no new
+  row) and supersedes it when it moved. `AnswerProcessor#existing_fact` looks for `accepted` **or**
+  `stale`; `Fact.current` would miss the stale one and leave a duplicate behind.
+
 ## Site structure is derived, never chosen
 
 Site structure comes from the **goal**, not from a user picking a template and not from the LLM inventing

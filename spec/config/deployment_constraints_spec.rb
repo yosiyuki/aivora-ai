@@ -61,4 +61,16 @@ RSpec.describe "Deployment constraints" do
     # Pages are rendered on request, not exported to disk (§45).
     expect(public_routes).not_to match(/send_file|Dir\.|File\.write/)
   end
+
+  it "keeps observing on a schedule, which is what stops stale facts going unnoticed" do
+    recurring = YAML.safe_load(ERB.new(root.join("config/recurring.yml").read).result, aliases: true).fetch("production")
+
+    expect(recurring).to include("verify_fact_staleness")
+    expect(recurring.dig("verify_fact_staleness", "class")).to eq("Verification::StalenessJob")
+
+    # Observation is fixed cost and must not depend on the generation budget
+    # (README §33), which holds here because the job calls no model at all.
+    job = root.join("app/jobs/verification/staleness_job.rb").read
+    expect(job).not_to match(/Llm::/)
+  end
 end

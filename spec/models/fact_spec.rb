@@ -92,4 +92,46 @@ RSpec.describe Fact, type: :model do
       expect(fact.reload.status).to eq("retired")
     end
   end
+
+  describe "#mark_stale!" do
+    it "stops publication without claiming the value is wrong" do
+      site = cafe_site
+      fact = site.primary_entity.facts.for_slot("location").first
+
+      fact.mark_stale!
+
+      expect(fact.reload.status).to eq("stale")
+      expect(fact.valid_until).to be_nil, "unchecked is not retired"
+      expect(fact.value).to eq("渋谷"), "the value is kept for the owner to confirm"
+    end
+
+    it "keeps a stale fact out of what a page may say" do
+      site = cafe_site
+      fact = site.primary_entity.facts.for_slot("location").first
+
+      fact.mark_stale!
+
+      expect(described_class.current).not_to include(fact)
+    end
+
+    it "only applies to a fact that was published in the first place" do
+      site = cafe_site
+      candidate = site.primary_entity.facts.create!(attribute_key: "営業時間", slot_key: "hours",
+                                                    value_json: { "value" => "7時-17時" }, confidence: 0.9)
+
+      expect(candidate.mark_stale!).to be(false)
+      expect(candidate.reload.status).to eq("candidate")
+    end
+
+    it "is reversed by accepting it again" do
+      site = cafe_site
+      fact = site.primary_entity.facts.for_slot("location").first
+      fact.mark_stale!
+
+      fact.accept!(evidence: owner_evidence(site, text: "いまも渋谷です"))
+
+      expect(fact.reload.status).to eq("accepted")
+      expect(fact.last_verified_at).to be_within(5.seconds).of(Time.current)
+    end
+  end
 end
