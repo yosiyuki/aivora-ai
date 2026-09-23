@@ -69,8 +69,11 @@ module Verification
     # accept! here.
     def write_fact!(entity, value, output, evidence, trusted:)
       value_json = { "value" => value, "source_text" => output["source_text"] }
-      existing = entity.facts.current.for_slot(@request.slot_key).first
+      existing = existing_fact(entity)
 
+      # The same value, confirmed again: re-accepting moves last_verified_at
+      # and brings a stale fact back into publication without a new row.
+      return existing.accept!(evidence: evidence) if existing && trusted && unchanged?(existing, value)
       return existing.supersede!(value_json, evidence: evidence) if existing && trusted
 
       fact = entity.facts.create!(site: @site, attribute_key: label_for_slot, slot_key: @request.slot_key,
@@ -79,6 +82,20 @@ module Verification
                                   change_reason: "answered verification request #{@request.id}")
       fact.accept!(evidence: evidence) if trusted
       fact
+    end
+
+    # A recheck names the fact it is about. Otherwise take whichever fact holds
+    # this slot — including a stale one, which `current` excludes and which
+    # would otherwise be left behind as a duplicate.
+    def existing_fact(entity)
+      return @request.fact if @request.fact&.entity_id == entity.id
+
+      entity.facts.where(status: %w[accepted stale]).for_slot(@request.slot_key)
+            .where("valid_until IS NULL OR valid_until > ?", Time.current).first
+    end
+
+    def unchanged?(fact, value)
+      Content::TextNormalizer.normalize(fact.value.to_s) == Content::TextNormalizer.normalize(value)
     end
 
     def label_for_slot

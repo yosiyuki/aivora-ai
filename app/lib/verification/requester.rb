@@ -28,6 +28,21 @@ module Verification
       end
     end
 
+    # A fact nobody has confirmed within its risk window. Unlike an initial
+    # request this names the fact, so the answer can supersede that exact value
+    # rather than guessing which one it replaces.
+    def issue_recheck(fact)
+      return nil if fact.slot_key.blank?
+      return nil if VerificationRequest.where(site: @site, fact: fact, status: "open").exists?
+
+      slot = slots[fact.slot_key] or return nil
+      VerificationRequest.create!(
+        site: @site, request_type: "recheck", fact: fact, entity: fact.entity, slot_key: fact.slot_key,
+        question: Question.recheck(slot, value: fact.value, last_verified_at: fact.last_verified_at),
+        priority: rank(slot)
+      )
+    end
+
     private
 
     # Grounder-decided blanks are claim rows; drafter placeholders live only in

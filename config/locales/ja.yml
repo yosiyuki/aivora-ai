@@ -132,6 +132,8 @@ ja:
       verifiable: 記事に「%{label}」を書きたいのですが、教えてください。
       experiential: 「%{label}」について、ご自身の言葉で聞かせてください。
       context: 「%{statement}」と書きたかったのですが、確かめられませんでした。
+      recheck: 「%{label}」は今も「%{value}」で合っていますか。変わっていれば教えてください。
+      recheck_aged: 「%{label}」を %{months} か月ほど確認できていません。今も「%{value}」で合っていますか。
   content:
     answer_blanks: 分かるものを教える
     title: ページ
