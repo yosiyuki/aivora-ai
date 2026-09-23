@@ -12,8 +12,9 @@ section.card
       h2 = t("content.blanks_heading", count: @blank_labels.size)
       p.lead = t("content.blanks_lead")
       ul
-        - @blank_labels.each do |label|
+        - @blank_labels.each do |_key, label|
           li = label
+      = link_to t("content.answer_blanks"), admin_verifications_path, class: "link"
 
   - if @published
     section.preview

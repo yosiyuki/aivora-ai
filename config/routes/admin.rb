@@ -10,6 +10,12 @@ namespace :admin do
   resources :content_items, only: %i[index show] do
     post :regenerate, on: :member
   end
+  resources :verifications, only: :index do
+    member do
+      post :answer
+      post :skip
+    end
+  end
 end
 
 resource :session, only: %i[new create destroy]

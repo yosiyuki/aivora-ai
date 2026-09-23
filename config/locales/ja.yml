@@ -115,7 +115,25 @@ ja:
         other: あと %{count} ページほど作れる見込みです
       amount: （$%{spent} / $%{limit}）
       degraded: 今月の予算を使い切ったので、軽いモデルに切り替えて続けています。根拠の確認はこれまでどおり行っています。
+  # Verification requests. The question names the slot's label, never its key
+  # (README §27), and the owner is told what the answer is for.
+  verification:
+    title: 教えてほしいこと
+    lead: 記事に書きたいのですが、まだ分からないことがあります。答えられるものだけで大丈夫です。
+    none: いまのところ、お聞きしたいことはありません。
+    answer_label: 回答
+    placeholder: ご自身の言葉でどうぞ
+    submit: 答える
+    skip: 今は答えない
+    thanks: ありがとうございます。記事に反映します。
+    skipped: わかりました。またあとでお聞きします。
+    blank_answer: 何か入力してください。
+    question:
+      verifiable: 記事に「%{label}」を書きたいのですが、教えてください。
+      experiential: 「%{label}」について、ご自身の言葉で聞かせてください。
+      context: 「%{statement}」と書きたかったのですが、確かめられませんでした。
   content:
+    answer_blanks: 分かるものを教える
     title: ページ
     none_yet: まだページはありません。
     columns:

@@ -1,0 +1,19 @@
+- content_for :title, t("verification.title")
+section.card
+  h1 = t("verification.title")
+  - if @requests.empty?
+    p.lead = t("verification.none")
+  - else
+    p.lead = t("verification.lead")
+    ul.verifications
+      - @requests.each do |request|
+        li.verification id="verification_#{request.id}"
+          p.question = request.question
+          = form_with url: answer_admin_verification_path(request), method: :post do |form|
+            - field_id = "answer_#{request.id}"
+            .field
+              = form.label :answer, request.question, for: field_id, class: "visually-hidden"
+              - hint = t("verification.placeholder")
+              = form.text_area :answer, id: field_id, rows: 3, required: true, placeholder: hint
+            = form.submit t("verification.submit")
+          = button_to t("verification.skip"), skip_admin_verification_path(request), method: :post, class: "link"

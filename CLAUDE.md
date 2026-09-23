@@ -341,6 +341,38 @@ disk or pushed elsewhere (`TechnicalArchitecture.md` §22, §45).
 - `fresh_when(@version)` is safe because a decided `ContentVersion` is read-only, so its ETag only
   changes when the page is regenerated.
 
+## Asking the owner (Verification Requests)
+
+A verifiable claim with no knowledge is left blank, and the blank is the question (`README.md` §14).
+Filling an empty form with entities and facts is beyond a non-expert; answering "what are your opening
+hours?" against a page that visibly lacks them is not.
+
+- `Verification::Requester#issue_for(version)` runs after a page is generated. Its sources are the
+  blanks in that version **and** the `standard` / `enriched` slots nothing has filled — the first code
+  to read those levels, which the interview deliberately never asks for (README §27.3).
+- **A blank reaches a page two ways.** The Grounder writes a `content_claims` row; the drafter's own
+  `[[slot:key]]` survives into the body with no claim behind it. Anything reading only claims misses
+  the second kind, so the requester and the affected-page lookup both check the body too.
+- **Priority is a rank, not a score.** `LEVEL_RANK` orders `minimum` → `standard` → `enriched`, weight
+  breaks ties. `weight` is defined as the Knowledge Health input (`DatabaseSchema.md` §65), so deriving
+  a priority coefficient from it would be our arithmetic, not the product's. The number is never shown.
+- **Questions are written in code** (`Verification::Question`), like page titles and editorial
+  prohibitions. A generated question would carry assumptions nothing backs. The slot's label is shown,
+  never its key.
+- **An answer is not knowledge yet.** The form records it verbatim in `verification_events` and stops.
+  `Verification::ProcessAnswersJob` does the extraction, so the owner's words survive a model failure
+  and are retryable. That split is also what lets a Slack or email channel land later by writing an
+  event and nothing else (`README.md` §14, `TechnicalArchitecture.md` §36 "Hourly Verification Response
+  Processing").
+- The answer takes the interview's path exactly: `SourceItem` under an owner-trust `verification`
+  source, `Evidence`, one structured call, then the same `source_text` verbatim check. Without a span
+  the fact stays a candidate and fills no slot. An existing accepted fact is **superseded, not edited**.
+- **Affected Content Detection** (`TechnicalArchitecture.md` §18): only pages carrying that slot's
+  blank are regenerated. Rebuilding everything would spend budget on pages the answer did not touch.
+- `verification_events.person_id` is a channel-qualified string (`"user:1"`), the same shape as
+  `experiences.person_id`, so Slack ids fit later without a migration. `assigned_to` and `due_at` exist
+  as columns per §22 and are not read: one deployment has one owner and no way to notify them.
+
 ## Site structure is derived, never chosen
 
 Site structure comes from the **goal**, not from a user picking a template and not from the LLM inventing
