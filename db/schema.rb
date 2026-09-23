@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -164,6 +164,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_010000) do
     t.datetime "last_verified_at"
     t.string "risk_level", default: "medium", null: false
     t.bigint "site_id", null: false
+    t.string "slot_key"
     t.string "status", default: "candidate", null: false
     t.string "unit"
     t.datetime "updated_at", null: false
@@ -173,6 +174,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_010000) do
     t.index ["entity_id", "attribute_key"], name: "index_facts_on_entity_id_and_attribute_key"
     t.index ["entity_id"], name: "index_facts_on_entity_id"
     t.index ["last_verified_at"], name: "index_facts_on_last_verified_at"
+    t.index ["site_id", "slot_key"], name: "index_facts_on_site_id_and_slot_key"
     t.index ["site_id", "status"], name: "index_facts_on_site_id_and_status"
     t.index ["site_id"], name: "index_facts_on_site_id"
   end

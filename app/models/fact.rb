@@ -24,8 +24,13 @@ class Fact < ApplicationRecord
   before_validation { self.valid_from ||= Time.current }
 
   scope :current, -> { where(status: "accepted").where("valid_until IS NULL OR valid_until > ?", Time.current) }
+  scope :for_slot, ->(key) { where(slot_key: key.to_s) }
 
   def accepted? = status == "accepted"
+
+  # Only an accepted fact satisfies a required slot: a candidate is the model's
+  # word, not the owner's (README §10).
+  def fills_slot? = slot_key.present? && accepted?
   def value = value_json.is_a?(Hash) && value_json.key?("value") ? value_json["value"] : value_json
 
   # Validation happens here, in code: the caller decides the evidence is good
@@ -48,7 +53,7 @@ class Fact < ApplicationRecord
       self.changed_by = changed_by
       self.change_reason = "superseded"
       update!(valid_until: Time.current, status: "retired")
-      entity.facts.create!(site:, attribute_key:, unit:, risk_level:, value_json: new_value_json, confidence:,
+      entity.facts.create!(site:, attribute_key:, slot_key:, unit:, risk_level:, value_json: new_value_json, confidence:,
                            status: "candidate", changed_by: changed_by, change_reason: "supersedes fact #{id}")
                   .tap { |f| f.accept!(evidence: evidence, changed_by: changed_by) }
     end

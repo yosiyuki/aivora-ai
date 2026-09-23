@@ -84,7 +84,12 @@ module Interviewing
         @interview.fill_slot!(f["slot"], value: f["value"], source_item_id: item.id, confidence: conf(f)) if span && f["slot"].present?
         next unless entity
 
+        # attribute_key is the label the extraction produced; slot_key is the
+        # product-fixed vocabulary that decides slot satisfaction. Keeping both
+        # means a fact can be read back by slot without losing the wording the
+        # owner's answer actually used.
         fact = entity.facts.create!(site: @site, attribute_key: f["attribute"].presence || f["slot"] || "unknown",
+                                    slot_key: f["slot"].presence,
                                     value_json: { "value" => f["value"], "source_text" => f["source_text"] },
                                     confidence: conf(f), risk_level: risk_for(f["slot"]), change_reason: "extracted from interview")
         fact.accept!(evidence: evidence) if span && item.owner?   # the owner said it, verifiably: that is the validation (G6)

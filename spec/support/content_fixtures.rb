@@ -5,8 +5,8 @@ module ContentFixtures
     site = Site.current || create_site(name: "渋谷のカフェ", domain: "cafe.example")
     site.add_archetype(:business, primary: true) unless site.primary_archetype
     entity = site.primary_entity || site.entities.create!(entity_type: "business", canonical_name: "渋谷のカフェ").tap { |e| site.update!(primary_entity: e) }
-    unless entity.facts.exists?(attribute_key: "location")
-      fact = entity.facts.create!(attribute_key: "location", value_json: { "value" => "渋谷" }, confidence: 0.9)
+    unless entity.facts.exists?(slot_key: "location")
+      fact = entity.facts.create!(attribute_key: "場所", slot_key: "location", value_json: { "value" => "渋谷" }, confidence: 0.9)
       fact.accept!(evidence: owner_evidence(site, text: "渋谷でカフェをやっています"))
     end
     if site.experiences.none?

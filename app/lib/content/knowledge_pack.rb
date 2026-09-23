@@ -3,7 +3,7 @@ module Content
   # owner's experiences, the goals (as intent, never as fact) and the slots
   # the archetype needs. The model sees short refs (F12 / E3), never ids.
   class KnowledgePack
-    FactRef = Data.define(:ref, :id, :attribute_key, :value, :entity_name)
+    FactRef = Data.define(:ref, :id, :attribute_key, :slot_key, :value, :entity_name)
     ExperienceRef = Data.define(:ref, :id, :summary, :body)
     SlotRef = Data.define(:key, :label, :kind, :level, :filled)
 
@@ -41,7 +41,7 @@ module Content
       lines << "## 主語"
       lines << (entity ? "#{entity.canonical_name}（#{entity.entity_type}）" : site.name)
       lines << "\n## 事実（F）"
-      lines.concat(facts.map { |f| "#{f.ref}: #{f.entity_name} の #{slot_label(f.attribute_key) || f.attribute_key} = #{f.value}" }.presence || [ "（まだありません）" ])
+      lines.concat(facts.map { |f| "#{f.ref}: #{f.entity_name} の #{slot_label(f.slot_key) || f.attribute_key} = #{f.value}" }.presence || [ "（まだありません）" ])
       lines << "\n## 体験・こだわり（E）"
       lines.concat(experiences.flat_map { |e| [ "#{e.ref}: #{e.summary}", "  本人の言葉: 「#{e.body}」" ] }.presence || [ "（まだありません）" ])
       lines << "\n## 目的（参考。事実ではない）"
@@ -59,13 +59,13 @@ module Content
       scope = ::Fact.current.where(site: site).includes(:entity)
       scope = scope.where(entity_id: entity.id) if entity
       weights = site.required_slots.to_h { |s| [ s.key, s.weight ] }
-      ordered = scope.to_a.sort_by { |f| [ -(weights[f.attribute_key] || 0), -f.last_verified_at.to_i, f.id ] }
+      ordered = scope.to_a.sort_by { |f| [ -(weights[f.slot_key] || 0), -f.last_verified_at.to_i, f.id ] }
       rows = ordered.first(LIMITS[:facts])
       @truncated = true if ordered.size > rows.size
       @facts_by_ref = {}
       rows.each_with_index.map do |fact, i|
-        FactRef.new(ref: "F#{i + 1}", id: fact.id, attribute_key: fact.attribute_key, value: fact.value.to_s,
-                    entity_name: fact.entity.canonical_name).tap { |r| @facts_by_ref[r.ref] = r }
+        FactRef.new(ref: "F#{i + 1}", id: fact.id, attribute_key: fact.attribute_key, slot_key: fact.slot_key,
+                    value: fact.value.to_s, entity_name: fact.entity.canonical_name).tap { |r| @facts_by_ref[r.ref] = r }
       end
     end
 
@@ -88,7 +88,9 @@ module Content
     end
 
     def build_slots
-      filled_keys = (site.current_interview&.filled_slot_keys || []) + facts.map(&:attribute_key)
+      # attribute_key is free text from the extraction and never matched a slot
+      # key; slot_key is the vocabulary that does.
+      filled_keys = (site.current_interview&.filled_slot_keys || []) + facts.filter_map(&:slot_key)
       filled_keys << "name" if entity   # the subject's name is known once there is a primary entity
       site.required_slots.map do |s|
         SlotRef.new(key: s.key, label: s.label, kind: s.kind, level: s.level, filled: filled_keys.include?(s.key))

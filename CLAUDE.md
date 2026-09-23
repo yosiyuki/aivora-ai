@@ -359,6 +359,13 @@ goal interview   → archetype → page structure + required knowledge slots
 - Slots carry `level` (`minimum` is asked in the interview; `standard` / `enriched` become Verification
   Requests), `kind` (`verifiable` / `experiential`, the Claim vocabulary) and `weight`.
   `Site#required_slots(level:)` unions the active archetypes, keeping the higher weight for shared keys.
+- **A fact answers a slot through `facts.slot_key`, never through `attribute_key`.** `attribute_key` is
+  the extraction's own wording in the owner's language ("主な読者"); `slot_key` is the product-fixed
+  vocabulary ("audience"). They are different alphabets, so comparing `attribute_key` to a slot key
+  never matched and no fact ever filled a slot — a published page showed 「（確認中）」 for a fact the
+  site already had. `Fact#fills_slot?` requires `accepted` as well: a candidate is the model's word.
+  `supersede!` carries `slot_key` forward, or the replacement would stop filling the slot. Slot weight
+  ordering, the pack's labels and the Grounder's blank/excise decision all read `slot_key`.
 - Archetypes compose (`site_archetypes`, `is_primary`) — "shop info + blog" is the common case, not an
   edge case.
 - **Required slots drive Verification Requests, and their priority is archetype-dependent.** A missing
