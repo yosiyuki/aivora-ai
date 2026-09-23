@@ -16,6 +16,7 @@ class Site < ApplicationRecord
   validate :only_one_site
 
   has_one :site_policy, dependent: :destroy
+  has_many :verification_requests, dependent: :restrict_with_exception
   has_many :site_archetypes, dependent: :destroy
   has_many :sources, dependent: :destroy
   has_many :interviews, dependent: :destroy

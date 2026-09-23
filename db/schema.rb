@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_020000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -527,6 +527,45 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_010000) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  create_table "verification_events", force: :cascade do |t|
+    t.float "confidence"
+    t.datetime "created_at", null: false
+    t.string "extraction_status", default: "pending", null: false
+    t.string "location"
+    t.text "notes"
+    t.string "person_id", null: false
+    t.string "result", null: false
+    t.bigint "source_item_id"
+    t.bigint "verification_request_id", null: false
+    t.datetime "verified_at", null: false
+    t.index ["extraction_status", "created_at"], name: "index_verification_events_on_extraction_status_and_created_at"
+    t.index ["source_item_id"], name: "index_verification_events_on_source_item_id"
+    t.index ["verification_request_id"], name: "index_verification_events_on_verification_request_id"
+  end
+
+  create_table "verification_requests", force: :cascade do |t|
+    t.string "assigned_to"
+    t.datetime "completed_at"
+    t.bigint "content_claim_id"
+    t.datetime "created_at", null: false
+    t.datetime "due_at"
+    t.bigint "entity_id"
+    t.bigint "fact_id"
+    t.integer "priority", default: 0, null: false
+    t.text "question", null: false
+    t.string "request_type", null: false
+    t.bigint "site_id", null: false
+    t.string "slot_key"
+    t.string "status", default: "open", null: false
+    t.datetime "updated_at", null: false
+    t.index ["content_claim_id"], name: "index_verification_requests_on_content_claim_id"
+    t.index ["entity_id"], name: "index_verification_requests_on_entity_id"
+    t.index ["fact_id"], name: "index_verification_requests_on_fact_id"
+    t.index ["site_id", "slot_key", "status"], name: "index_verification_requests_on_site_id_and_slot_key_and_status"
+    t.index ["site_id", "status"], name: "index_verification_requests_on_site_id_and_status"
+    t.index ["site_id"], name: "index_verification_requests_on_site_id"
+  end
+
   add_foreign_key "claims", "entities"
   add_foreign_key "claims", "sites"
   add_foreign_key "content_claims", "content_versions"
@@ -569,4 +608,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_010000) do
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "source_items", "sources"
   add_foreign_key "sources", "sites"
+  add_foreign_key "verification_events", "source_items"
+  add_foreign_key "verification_events", "verification_requests"
+  add_foreign_key "verification_requests", "content_claims"
+  add_foreign_key "verification_requests", "entities"
+  add_foreign_key "verification_requests", "facts"
+  add_foreign_key "verification_requests", "sites"
 end

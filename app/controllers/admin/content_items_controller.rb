@@ -29,13 +29,14 @@ module Admin
       @item = Current.site.content_items.find(params[:id])
     end
 
-    # Slot keys are internal; the user sees the archetype's label.
+    # Slot keys are internal; the user sees the archetype's label. The key is
+    # kept alongside so the view can point at the question that asks for it.
     def blank_labels(version)
       return [] unless version
 
       keys = version.blank_slot_keys | version.claims.blanks.pluck(:slot_key).compact
       slots = Current.site.required_slots.index_by(&:key)
-      keys.map { |k| slots[k]&.label || t("content.unknown_blank") }.uniq
+      keys.uniq.map { |k| [ k, slots[k]&.label || t("content.unknown_blank") ] }
     end
   end
 end
