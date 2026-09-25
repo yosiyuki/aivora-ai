@@ -2,6 +2,8 @@
 # never changes; a page is unpublished by status, never deleted; and only a
 # version that passed grounding can be the published one.
 class ContentItem < ApplicationRecord
+  include NeverDeleted
+
   CONTENT_TYPES = %w[page article].freeze
   STATUSES = %w[draft generating published unpublished].freeze
   URL_FORMAT = %r{\A/(?:[a-z0-9\-]+(?:/[a-z0-9\-]+)*)?\z}
@@ -28,7 +30,6 @@ class ContentItem < ApplicationRecord
   validate :published_only_through_publish
 
   before_validation { self.language ||= site&.primary_language }
-  before_destroy { raise ActiveRecord::RecordNotDestroyed.new("content is never physically deleted", self) }
 
   # top lives at "/", everything else under its page type.
   def self.url_for(page_type, slug: nil)

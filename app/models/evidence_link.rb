@@ -1,4 +1,6 @@
 class EvidenceLink < ApplicationRecord
+  include NeverDeleted
+
   RELATIONS = %w[supports contradicts mentions].freeze
 
   belongs_to :evidence

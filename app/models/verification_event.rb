@@ -5,6 +5,8 @@
 # only has the admin form, so it is always "user:<id>"; a Slack integration
 # would write "slack:<member id>". `experiences.person_id` has the same shape.
 class VerificationEvent < ApplicationRecord
+  include NeverDeleted
+
   RESULTS = %w[answered skipped].freeze
   EXTRACTION_STATUSES = %w[pending processing done failed].freeze
 
@@ -17,7 +19,6 @@ class VerificationEvent < ApplicationRecord
   validates :notes, presence: true, if: -> { result == "answered" }
 
   before_validation { self.verified_at ||= Time.current }
-  before_destroy { raise ActiveRecord::RecordNotDestroyed.new("verification events are never physically deleted", self) }
 
   scope :pending_extraction, -> { where(extraction_status: "pending", result: "answered") }
 

@@ -4,7 +4,9 @@ module Evidenced
   extend ActiveSupport::Concern
 
   included do
-    has_many :evidence_links, as: :knowledge, dependent: :destroy
+    # restrict, not destroy: provenance outlives the thing it justifies, and
+    # the header above promises links are only ever added.
+    has_many :evidence_links, as: :knowledge, dependent: :restrict_with_exception
   end
 
   def evidence = Evidence.where(id: evidence_links.select(:evidence_id))
