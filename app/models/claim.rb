@@ -5,6 +5,7 @@ class Claim < ApplicationRecord
   include Versioned
   include Evidenced
   include SameSite
+  include NeverDeleted
 
   KINDS = %w[verifiable experiential general].freeze
   STATUSES = %w[candidate grounded ungrounded retired].freeze

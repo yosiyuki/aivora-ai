@@ -82,7 +82,7 @@ RSpec.describe ContentItem, type: :model do
     item.unpublish!
     expect(item.reload).to have_attributes(status: "unpublished", published_version: v1)
     expect(v2.reload).to be_persisted
-    expect { item.destroy! }.to raise_error(ActiveRecord::DeleteRestrictionError)
+    expect { item.destroy! }.to raise_error(ActiveRecord::RecordNotDestroyed)
   end
 
   describe ".published" do

@@ -3,15 +3,21 @@
 class Entity < ApplicationRecord
   include Versioned
   include Evidenced
+  include NeverDeleted
 
   TYPES = %w[business person topic project place product].freeze
   STATUSES = %w[active merged retired].freeze
 
   belongs_to :site
-  has_many :entity_aliases, dependent: :destroy
+  # Nothing here cascades. An entity that has knowledge attached cannot be
+  # removed, and its knowledge is never quietly detached either: nullifying
+  # entity_id would strip a fact of its subject while leaving the row in
+  # place, which loses information without recording that anything happened.
+  # Combining entities is MERGE (README §23), not severed references.
+  has_many :entity_aliases, dependent: :restrict_with_exception
   has_many :facts, dependent: :restrict_with_exception
-  has_many :claims, dependent: :nullify
-  has_many :experiences, dependent: :nullify
+  has_many :claims, dependent: :restrict_with_exception
+  has_many :experiences, dependent: :restrict_with_exception
 
   validates :entity_type, inclusion: { in: TYPES }
   validates :canonical_name, presence: true

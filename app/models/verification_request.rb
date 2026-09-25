@@ -7,6 +7,8 @@
 # `entity` is accepted by the schema (README §12 asks low-confidence entity
 # candidates to be confirmed) but nothing issues one yet.
 class VerificationRequest < ApplicationRecord
+  include NeverDeleted
+
   REQUEST_TYPES = %w[initial recheck entity].freeze
   STATUSES = %w[open answered closed superseded].freeze
 
@@ -26,7 +28,6 @@ class VerificationRequest < ApplicationRecord
   # again before an equally important one raised today.
   scope :by_priority, -> { order(priority: :desc, created_at: :asc) }
 
-  before_destroy { raise ActiveRecord::RecordNotDestroyed.new("verification requests are never physically deleted", self) }
 
   def open? = status == "open"
 

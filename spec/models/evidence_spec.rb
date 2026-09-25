@@ -45,7 +45,7 @@ RSpec.describe Evidence, type: :model do
   it "is immutable once written" do
     ev = owner_evidence(text: "x")
     expect { ev.update!(content: "y") }.to raise_error(ActiveRecord::ReadOnlyRecord)
-    expect { ev.destroy! }.to raise_error(ActiveRecord::ReadOnlyRecord)
+    expect { ev.destroy! }.to raise_error(ActiveRecord::RecordNotDestroyed)
   end
 
   it "versions questions and problems like every other knowledge record" do
@@ -60,7 +60,7 @@ RSpec.describe Evidence, type: :model do
                .create!(attribute_key: "opening_hours", value_json: { "value" => "07:00" }, confidence: 0.9)
     fact.accept!(evidence: ev)
     link = fact.evidence_links.sole
-    expect { link.destroy! }.to raise_error(ActiveRecord::ReadOnlyRecord)
+    expect { link.destroy! }.to raise_error(ActiveRecord::RecordNotDestroyed)
     expect { link.update!(relation_type: "mentions") }.to raise_error(ActiveRecord::ReadOnlyRecord)
     expect(fact.reload).to be_provenanced
   end

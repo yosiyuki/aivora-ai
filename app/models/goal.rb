@@ -1,6 +1,8 @@
 # What the user wants the site to achieve, in their own words. Deliberately
 # not part of Knowledge: intent must never be mistaken for fact.
 class Goal < ApplicationRecord
+  include NeverDeleted
+
   STATUSES = %w[proposed active retired].freeze
 
   belongs_to :site

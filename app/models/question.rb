@@ -2,6 +2,7 @@ class Question < ApplicationRecord
   include Versioned
   include Evidenced
   include SameSite
+  include NeverDeleted
 
   belongs_to :site
   belongs_to :entity, optional: true
