@@ -53,4 +53,18 @@ RSpec.describe "Admin content items", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  it "explains, rather than queues, a regeneration past the daily cap" do
+    stub_generation
+    Content::GenerateJob.perform_now(site.id, "top")
+    site.policy.update!(max_pages_changed_per_day: 0)
+    Current.content_throttles = nil
+
+    expect {
+      post regenerate_admin_content_item_path(site.reload.top_page)
+    }.not_to have_enqueued_job(Content::GenerateJob)
+
+    expect(response).to redirect_to(admin_content_item_path(site.top_page))
+    expect(flash[:alert]).to include("明日また試せます")
+  end
 end

@@ -32,3 +32,7 @@ section.card.usage
   p.amount = t("admin.usage.amount", spent: spent, limit: limit)
   - if @usage.degraded?
     p.degraded = t("admin.usage.degraded")
+  - if @throttle.new_pages_capped?
+    p.capped = t("admin.usage.new_pages_capped")
+  - elsif @throttle.changes_capped?
+    p.capped = t("admin.usage.changes_capped")

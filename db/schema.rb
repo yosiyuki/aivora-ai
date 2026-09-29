@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_020000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -314,8 +314,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_020000) do
     t.string "budget_action", default: "degrade", null: false
     t.datetime "created_at", null: false
     t.integer "max_links_changed_per_day"
-    t.integer "max_new_pages_per_week"
-    t.integer "max_pages_changed_per_day"
+    t.integer "max_new_pages_per_week", default: 10
+    t.integer "max_pages_changed_per_day", default: 5
     t.integer "max_redirects_per_batch"
     t.decimal "max_site_change_ratio", precision: 5, scale: 4
     t.decimal "monthly_budget", precision: 10, scale: 2, default: "50.0", null: false

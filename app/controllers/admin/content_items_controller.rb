@@ -17,6 +17,8 @@ module Admin
     def regenerate
       if @item.generating?
         redirect_to admin_content_item_path(@item), alert: t("content.already_generating")
+      elsif !Content::Throttle.for(Current.site).change_allowed?
+        redirect_to admin_content_item_path(@item), alert: t("content.change_cap_reached")
       else
         Content::GenerateJob.perform_later(Current.site.id, @item.archetype_page_type)
         redirect_to admin_content_item_path(@item), notice: t("content.regenerate_queued")

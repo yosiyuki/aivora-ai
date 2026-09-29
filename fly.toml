@@ -1,0 +1,48 @@
+app = "aivora-ai"
+primary_region = "nrt"
+
+[build]
+
+# Migrations run before the new release takes traffic.
+[deploy]
+  release_command = "bin/process release"
+
+# One machine serves both the admin UI and the public pages: APP_ROLE=web draws
+# both route sets (Technical Architecture §46). Splitting them is for a
+# deployment whose public traffic needs isolating, which this one does not.
+[processes]
+  app = "bin/process web"
+  worker = "bin/process worker"
+
+# The image runs as a non-root user, which cannot bind port 80. Thruster takes
+# its listening port from here.
+[env]
+  HTTP_PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  processes = ["app"]
+
+  # Nothing runs while nobody is looking. A request wakes the machine; the
+  # first one after a sleep pays a few seconds of boot.
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 50
+    soft_limit = 40
+
+# The worker has no HTTP service, so nothing wakes it from outside. It stays
+# up: page generation is enqueued by the interview and has to be picked up.
+[[vm]]
+  processes = ["app"]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+
+[[vm]]
+  processes = ["worker"]
+  size = "shared-cpu-1x"
+  memory = "512mb"
