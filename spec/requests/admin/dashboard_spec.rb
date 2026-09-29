@@ -50,4 +50,39 @@ RSpec.describe "Admin dashboard", type: :request do
     expect(response.body).not_to include("停止")
     expect(response.body).to include("根拠の確認はこれまでどおり")
   end
+
+  describe "knowledge health" do
+    it "shows one number and turns each count into something to do" do
+      stub_generation
+      Content::GenerateJob.perform_now(site.id, "top")
+
+      get admin_root_path
+
+      expect(response.body).to match(/\d+%/)
+      expect(response.body).to include("教えてほしいことが")
+      expect(response.body).not_to include("slot"), "no slot keys"
+      expect(response.body).not_to include("hours")
+    end
+
+    it "says nothing needs doing when nothing does" do
+      site.required_slots.each do |s|
+        next if s.key == "location"
+        f = site.primary_entity.facts.create!(attribute_key: s.key, slot_key: s.key, value_json: { "value" => "x" }, confidence: 0.9)
+        f.accept!(evidence: owner_evidence(site, text: "x です"))
+      end
+
+      get admin_root_path
+
+      expect(response.body).to include("100%")
+      expect(response.body).to include("いま確認が必要なことはありません")
+    end
+
+    it "waits for the interview before scoring" do
+      allow(Knowledge::Health).to receive(:for).and_return(instance_double(Knowledge::Health, score: nil))
+
+      get admin_root_path
+
+      expect(response.body).to include("ヒアリングが終わると計算できます")
+    end
+  end
 end
