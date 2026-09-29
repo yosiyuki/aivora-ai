@@ -4,6 +4,11 @@
 # Pages are looked up by the URL that was issued to them (ContentItem#url),
 # never rebuilt from params: URLs are immutable (Technical Architecture §23),
 # so the stored string is the only thing allowed to resolve a page.
+# Search-engine files, rendered rather than static so they can name the
+# serving host. Before the catch-all, and `format: false` keeps the dot.
+get "robots.txt" => "public/robots#show", as: :robots, format: false
+get "sitemap.xml" => "public/sitemaps#show", as: :sitemap, format: false
+
 root "public/pages#show"
 
 # Catch-all last: `up` and the admin routes are drawn before this file's
