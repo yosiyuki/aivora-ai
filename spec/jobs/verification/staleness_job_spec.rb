@@ -74,4 +74,14 @@ RSpec.describe Verification::StalenessJob do
     expect { described_class.perform_now }.to raise_error(StandardError)
     expect(fact.reload.status).to eq("accepted"), "nothing was swept before the failure"
   end
+
+  it "keeps observing while generation is frozen (README §33)" do
+    fact = aged_fact(120)
+    site.policy.freeze_automation!
+
+    described_class.perform_now
+
+    expect(fact.reload.status).to eq("stale")
+    expect(site.verification_requests.where(request_type: "recheck")).to be_present
+  end
 end

@@ -14,6 +14,13 @@ module Content
 
     def perform(site_id, page_type)
       site = Site.find(site_id)
+      # Emergency Stop (README §34): the owner has frozen generation. Nothing
+      # else stops — this job is the only thing that writes pages.
+      if site.policy.frozen?
+        Rails.logger.info("generate: #{page_type} skipped, automation frozen for site #{site_id}")
+        return
+      end
+
       # Aggregate Policy (README §32), decided before the claim so a deferred
       # page never shows as generating. Reaching a cap defers to the next
       # window; it is not a failure and leaves no failed version.

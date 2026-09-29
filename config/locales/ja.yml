@@ -118,6 +118,13 @@ ja:
       # Aggregate caps (README §32). Deferred, not stopped, so say when it resumes.
       new_pages_capped: 今週作れるページ数の上限に達しました。来週、続きを作ります。
       changes_capped: 今日作り直せるページ数の上限に達しました。明日、続きを作ります。
+    automation:
+      freeze: ページの作成を止める
+      resume: ページの作成を再開する
+      frozen_since: "%{date}からページの作成を止めています。"
+      still_running: 教えてほしいことの受け付けと、情報が古くなっていないかの点検は続いています。
+      frozen_notice: ページの作成を止めました。再開するまで新しいページは作られません。
+      resumed_notice: ページの作成を再開しました。
   # Verification requests. The question names the slot's label, never its key
   # (README §27), and the owner is told what the answer is for.
   verification:

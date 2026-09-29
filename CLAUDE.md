@@ -202,6 +202,13 @@ any later one is a change — in the site's own week and day. `Content::Generate
 claiming, so a deferred page never shows as generating; reaching a cap defers to the next window and
 leaves no failed version. The three remaining caps have no action to bound yet and are not read.
 
+Emergency Stop (README §34) exists in its manual form: `SitePolicy#freeze_automation!` sets
+`automation_frozen_at`, and `Content::GenerateJob` returns before claiming while it is set. **Only
+generation stops.** `Verification::StalenessJob` and `ProcessAnswersJob` keep running — stopping observation
+is the state this product must avoid (§33) — and answers still become knowledge; only the rebuild they
+would trigger waits. The dashboard button and its wording say "止めています", never "停止", and name what
+keeps running. Automatic triggers (traffic drop, mass 404, ranking loss) wait for operation-phase data.
+
 In code: the ceiling lives in `site_policies` (`DatabaseSchema.md` §55, reached through `Site#policy`,
 which creates the row with the conservative default rather than letting a site run uncapped). That table
 is the home of every aggregate limit, not just money — with no per-action approval those caps and

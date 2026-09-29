@@ -45,4 +45,15 @@ RSpec.describe SitePolicy, type: :model do
 
     expect(policy).not_to be_valid
   end
+
+  it "freezes and resumes automation" do
+    policy = site.policy
+    expect(policy).not_to be_frozen
+
+    policy.freeze_automation!
+    expect(policy).to be_frozen
+
+    policy.resume_automation!
+    expect(policy).not_to be_frozen
+  end
 end
