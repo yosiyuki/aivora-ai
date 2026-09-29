@@ -60,6 +60,17 @@ module ContentFixtures
     end
   end
 
+  # An article about one experience: the draft is the owner's words back,
+  # which is what grounds it.
+  def stub_article_generation(experience)
+    Llm::Fake.respond(:drafting) { "# 記事\n\n#{experience.body}\n" }
+    Llm::Fake.respond(:grounding) do |_call|
+      pack = Content::KnowledgePack.for(Site.current, page_type: "article", knowledge: experience)
+      { "claims" => [ { "statement" => experience.body, "kind" => "experiential", "support" => { "ref" => pack.subject_ref },
+                        "slot_key" => nil, "confidence" => 0.9 } ] }
+    end
+  end
+
   def cafe_faq_draft = <<~MD
     # よくある質問
 
