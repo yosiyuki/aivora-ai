@@ -113,6 +113,23 @@ Validation → Knowledge` (`README.md` §10). An LLM extraction is a *candidate*
 noindex + campaign record; MERGE keeps the source article's body and points canonical at the target. This
 is load-bearing: it is what makes autonomous operation without human approval recoverable.
 
+In code this is the `NeverDeleted` concern, included by every model holding knowledge, provenance,
+published content, or the record of asking the owner something. Say it directly rather than relying on
+`dependent: :restrict_with_exception` — that only made a row undeletable *while it happened to have
+dependents*, so deleting a fact's `knowledge_versions` first made the fact deletable again. Tables that
+are meant to churn (Solid Queue, sessions, sources, interviews, `llm_usage`, site configuration) stay
+deletable, and `spec/models/never_deleted_spec.rb` fails if that line moves either way.
+
+- **`knowledge_versions` is append-only in both directions** — never rewritten, never removed. Every
+  other knowledge row leans on having a version, so a deletable version would unlock deleting the
+  knowledge too.
+- **Nothing cascades off an `Entity`.** `dependent: :nullify` on its claims and experiences used to
+  strip a row's subject while keeping the row — information lost with no record that anything happened.
+  Combining entities is MERGE, not severed references.
+- Guards run on the ActiveRecord path only. `delete_all` and raw SQL skip callbacks;
+  `spec/lib/knowledge_bypass_spec.rb` scans all of `app/` and `lib/` to keep them out of the codebase,
+  and database triggers are #45.
+
 **Human operation is required at initial setup only** (`README.md` §27, §31). There is no per-action
 approval queue. The Review UI is an **after-the-fact observation surface**, not an approval gate
 (`TechnicalArchitecture.md` §30), and it never offers content editing. Because individual review is gone,

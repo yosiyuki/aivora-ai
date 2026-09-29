@@ -2,6 +2,7 @@
 # Immutable where possible: never edited, only linked.
 class Evidence < ApplicationRecord
   include SameSite
+  include NeverDeleted
 
   TYPES = %w[statement quote document observation].freeze
 

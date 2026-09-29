@@ -3,6 +3,7 @@
 # promote!, which is a code decision based on source trust.
 class EntityCandidate < ApplicationRecord
   include SameSite
+  include NeverDeleted
 
   STATUSES = %w[pending accepted rejected].freeze
 

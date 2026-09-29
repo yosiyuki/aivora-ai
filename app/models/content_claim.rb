@@ -2,6 +2,8 @@
 # grounded + non-general requires a knowledge reference; a blank is where a
 # verifiable claim had no knowledge and was replaced by [[slot:key]].
 class ContentClaim < ApplicationRecord
+  include NeverDeleted
+
   KINDS = Claim::KINDS
   REVIEW_STATUSES = %w[grounded blank excised general].freeze
   KNOWLEDGE_TYPES = %w[Fact Experience].freeze
@@ -19,7 +21,6 @@ class ContentClaim < ApplicationRecord
 
   # `grounded` is derived from review_status; the two can never disagree.
   before_validation { self.grounded = %w[grounded general].include?(review_status) }
-  before_destroy { raise ActiveRecord::RecordNotDestroyed.new("content claims are never physically deleted", self) }
 
   scope :blanks, -> { where(review_status: "blank") }
 

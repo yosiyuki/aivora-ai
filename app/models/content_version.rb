@@ -1,6 +1,8 @@
 # One generation of a page's text (DatabaseSchema §28). Versions are appended,
 # never rewritten: once grounding has been decided the row is read-only.
 class ContentVersion < ApplicationRecord
+  include NeverDeleted
+
   GROUNDING_STATUSES = %w[pending passed failed].freeze
   SOURCES = %w[generated regenerated].freeze
   BLANK_PATTERN = /\[\[slot:([a-z_]+)\]\]/
@@ -14,7 +16,6 @@ class ContentVersion < ApplicationRecord
   validates :source, inclusion: { in: SOURCES }
 
   before_validation { self.version ||= content_item&.next_version_number }
-  before_destroy { raise ActiveRecord::RecordNotDestroyed.new("content versions are never physically deleted", self) }
 
   def passed? = grounding_status == "passed"
   def failed? = grounding_status == "failed"

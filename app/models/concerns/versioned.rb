@@ -4,13 +4,16 @@ module Versioned
   extend ActiveSupport::Concern
 
   included do
-    # Every record has at least one version, so destroy always raises: nothing
-    # versioned is ever physically deleted (README §23). This guards the
-    # ActiveRecord path (destroy / update! / create!). Bypass APIs
-    # (delete, delete_all, update_all, update_columns, insert_all) skip it, so
+    # Versions are kept, never cascaded away. This used to be the only thing
+    # stopping a knowledge row from being destroyed, which made the guarantee
+    # conditional on the versions still existing — deleting them first made
+    # the row deletable again. NeverDeleted states the rule directly now, on
+    # the versions as well as the knowledge.
+    #
+    # All of this guards the ActiveRecord path. Bypass APIs (delete,
+    # delete_all, update_all, update_columns, insert_all) skip callbacks, so
     # they are forbidden on knowledge tables; spec/lib/knowledge_bypass_spec.rb
-    # fails the build if one appears. Database-level enforcement is tracked
-    # separately.
+    # fails the build if one appears. Database-level enforcement is #45.
     has_many :knowledge_versions, as: :knowledge, dependent: :restrict_with_exception
     attr_accessor :change_reason, :changed_by
 

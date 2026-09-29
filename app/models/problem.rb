@@ -2,6 +2,7 @@ class Problem < ApplicationRecord
   include Versioned
   include Evidenced
   include SameSite
+  include NeverDeleted
 
   SEVERITIES = %w[low medium high].freeze
 

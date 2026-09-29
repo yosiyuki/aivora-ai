@@ -5,6 +5,7 @@ class Fact < ApplicationRecord
   include Versioned
   include Evidenced
   include SameSite
+  include NeverDeleted
 
   RISK_LEVELS = %w[low medium high].freeze
   STATUSES = %w[candidate accepted stale retired].freeze
