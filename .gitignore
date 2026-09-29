@@ -29,3 +29,9 @@
 
 # The example is documentation, not a secret.
 !/.env.example
+
+# PaaS-specific deployment files stay out of the repository
+# (TechnicalArchitecture.md §40-47): the image is the deliverable, and one
+# provider's config in the repo pulls the project toward that provider.
+/fly.toml
+/render.yaml

@@ -17,16 +17,27 @@ module Verification
       @site = site
     end
 
-    # Called after a version is decided. Blanks first, then slots that are
-    # simply unfilled: a hole in a published page is more pressing than a
-    # subject nobody has written about yet.
-    def issue_for(version)
-      wanted = blank_slot_keys(version) | unfilled_slot_keys
+    # Called after any page is generated. Blanks across every page's latest
+    # version first, then slots that are simply unfilled: a hole in a page is
+    # more pressing than a subject nobody has written about yet.
+    #
+    # Site-wide on purpose: with several pages generated in any order, a
+    # per-page pass would close a question raised by another page's blank.
+    def issue_for_site
+      versions = latest_versions
+      # A blank whose fact is already known is a page waiting to be rebuilt,
+      # not a question for the owner; asking again would be asking twice.
+      blanks = versions.flat_map { |v| blank_slot_keys(v) }.uniq - filled_slot_keys
+      wanted = blanks | unfilled_slot_keys
       VerificationRequest.transaction do
         supersede_gone(wanted)
-        wanted.filter_map { |key| issue(key, claim_for(version, key)) }
+        wanted.filter_map { |key| issue(key, claim_for(versions, key)) }
       end
     end
+
+    # One page's worth; kept for callers that hold a version, but the work is
+    # the same site-wide pass.
+    def issue_for(_version) = issue_for_site
 
     # A fact nobody has confirmed within its risk window. Unlike an initial
     # request this names the fact, so the answer can supersede that exact value
@@ -59,10 +70,10 @@ module Verification
 
     # standard and enriched slots are never asked in the interview (README
     # §27.3); they become questions here. This is the first code to read them.
-    def unfilled_slot_keys
-      filled = @site.facts.where(status: "accepted").where.not(slot_key: nil).distinct.pluck(:slot_key)
-      filled |= @site.current_interview&.filled_slot_keys.to_a
-      slots.keys - filled
+    def unfilled_slot_keys = slots.keys - filled_slot_keys - @site.current_interview&.filled_slot_keys.to_a
+
+    def filled_slot_keys
+      @filled_slot_keys ||= @site.facts.where(status: "accepted").where.not(slot_key: nil).distinct.pluck(:slot_key)
     end
 
     def issue(key, claim)
@@ -83,10 +94,16 @@ module Verification
                          .find_each(&:supersede!)
     end
 
-    def claim_for(version, key)
-      return nil if version.nil?
+    def claim_for(versions, key)
+      versions.each do |v|
+        claim = v.claims.blanks.find { |c| c.slot_key == key }
+        return claim if claim
+      end
+      nil
+    end
 
-      version.claims.blanks.find { |c| c.slot_key == key }
+    def latest_versions
+      @site.content_items.includes(latest_version: :claims).filter_map(&:latest_version)
     end
 
     def rank(slot) = LEVEL_RANK.fetch(slot.level, 0) * 100 + (slot.weight * 10).round

@@ -27,9 +27,16 @@ module Verification
       slot_key = request.slot_key
       return if slot_key.blank?
 
-      page_types(request.site, slot_key).each do |page_type|
+      # Pages carrying this blank, plus pages never published: a page that had
+      # no material yet has no blank to match, and this answer may be what it
+      # was waiting for. The job costs nothing if it is not.
+      (page_types(request.site, slot_key) | unpublished_page_types(request.site)).each do |page_type|
         Content::GenerateJob.perform_later(request.site_id, page_type)
       end
+    end
+
+    def unpublished_page_types(site)
+      site.content_items.where(published_version_id: nil).distinct.pluck(:archetype_page_type)
     end
 
     # A blank reaches the page two ways: the Grounder writes a claim row, and

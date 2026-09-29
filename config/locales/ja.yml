@@ -97,6 +97,28 @@ ja:
       published: 最初のページを公開しました。
       view_page: ページを見る
       generation_failed: ページを作れませんでした。もう一度お試しください。
+    # Knowledge Health (README §8): the launch-phase headline. Counts are
+    # phrased as things to do, never as slot keys or thresholds (README §5).
+    health:
+      heading: サイトの情報の健康度
+      not_yet: ヒアリングが終わると計算できます。
+      score: "%{score}%"
+      stale:
+        one: 古くなっているかもしれない情報が %{count} 件あります
+        other: 古くなっているかもしれない情報が %{count} 件あります
+      unverified:
+        one: 公開中のページに、まだ確認できていない箇所が %{count} つあります
+        other: 公開中のページに、まだ確認できていない箇所が %{count} つあります
+      open_requests:
+        one: 教えてほしいことが %{count} 件あります
+        other: 教えてほしいことが %{count} 件あります
+      conflicting:
+        one: 同じ項目に食い違う情報が %{count} 件あります
+        other: 同じ項目に食い違う情報が %{count} 件あります
+      missing_evidence:
+        one: 裏付けを待っている情報が %{count} 件あります
+        other: 裏付けを待っている情報が %{count} 件あります
+      all_good: いま確認が必要なことはありません。
     # Cost shown as outcomes, never as a spend target (README §33). Users are
     # not asked to predict their usage, so no figure here is a goal to hit.
     usage:
@@ -140,6 +162,7 @@ ja:
   content:
     answer_blanks: 分かるものを教える
     change_cap_reached: 今日はこれ以上作り直せません。明日また試せます。
+    waiting_for_material: まだ材料が足りません。教えてほしいことに答えると作れるようになります。
     title: ページ
     none_yet: まだページはありません。
     columns:

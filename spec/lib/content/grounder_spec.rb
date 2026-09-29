@@ -174,4 +174,27 @@ RSpec.describe Content::Grounder do
     expect(result.notes).to include(match(/not found/))
     expect(result.status).to eq(:passed)
   end
+
+  describe "questions as grounding" do
+    it "grounds a heading that repeats a visitor's question, verbatim, and excises one that does not" do
+      pack = Content::KnowledgePack.for(site, page_type: "faq")
+      q = pack.questions.first
+      body = "## #{q.text}\n場所は渋谷です。\n\n## 駐車場は広いですか\n場所は渋谷です。\n"
+      f = pack.facts.first.ref
+      claims = [
+        { "statement" => "## #{q.text}", "kind" => "experiential", "support" => { "ref" => q.ref }, "slot_key" => nil, "confidence" => 0.9 },
+        { "statement" => "場所は渋谷です。", "kind" => "verifiable", "support" => { "ref" => f }, "slot_key" => "location", "confidence" => 0.9 },
+        { "statement" => "## 駐車場は広いですか", "kind" => "experiential", "support" => { "ref" => q.ref }, "slot_key" => nil, "confidence" => 0.9 }
+      ]
+
+      result = described_class.new(pack).ground(body: body, claims: claims)
+
+      grounded = result.claims.find { |c| c[:statement] == "## #{q.text}" }
+      expect(grounded[:review_status]).to eq("grounded")
+      expect(grounded[:knowledge_type]).to eq("Question")
+      expect(result.claims.find { |c| c[:statement] == "## 駐車場は広いですか" }[:review_status]).to eq("excised"),
+        "a reference alone never counts: the words differ"
+      expect(result.status).to eq(:failed), "an ungrounded heading fails the version"
+    end
+  end
 end

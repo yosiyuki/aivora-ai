@@ -34,4 +34,17 @@ RSpec.describe "First page after the interview", type: :system do
     expect(page).to have_css(".page-preview .blank", text: "（確認中）")
     expect(page).to have_button("もう一度作る")
   end
+
+  it "grows the site beyond the front page from the same interview" do
+    stub_generation
+    perform_enqueued_jobs { Content::GenerateJob.perform_now(site.id, "top") }
+    stub_generation(page_type: "faq")
+    perform_enqueued_jobs { Content::GenerateJob.perform_now(site.id, "faq") }
+
+    visit "/"
+
+    expect(page).to have_link("よくある質問")
+    click_link "よくある質問"
+    expect(page).to have_text("駐車場はありますか")
+  end
 end

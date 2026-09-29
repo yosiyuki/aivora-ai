@@ -7,6 +7,7 @@ module Admin
       @top_page = @site.top_page
       @usage = Llm::Usage::Report.for(@site)
       @throttle = Content::Throttle.for(@site)
+      @health = Knowledge::Health.for(@site)
     end
   end
 end

@@ -104,7 +104,7 @@ module Interviewing
 
         span = grounded_span(e["source_text"], raw)
         body = span ? verbatim(e["source_text"], raw) : raw
-        exp = @site.experiences.create!(entity: entity, summary: e["summary"], body: body,
+        exp = @site.experiences.create!(entity: entity, summary: e["summary"], body: body, slot_key: e["slot"].presence,
                                         person_id: "owner", metadata: { "source_item_id" => item.id, "grounded" => span.present? })
         exp.add_evidence!(evidence)
         @interview.fill_slot!(e["slot"], value: e["summary"], source_item_id: item.id, confidence: conf(e)) if e["slot"].present?

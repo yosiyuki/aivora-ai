@@ -17,5 +17,9 @@ section.card
           tr
             td = link_to (item.title.presence || item.archetype_page_type), admin_content_item_path(item)
             td code = item.url
-            td = t("content.status.#{item.status}")
+            td
+              - if version.nil? && !item.generating?
+                = t("content.waiting_for_material")
+              - else
+                = t("content.status.#{item.status}")
             td = version ? version.blank_slot_keys.size : 0

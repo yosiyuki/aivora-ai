@@ -56,4 +56,15 @@ RSpec.describe Verification::ProcessAnswersJob do
     expect { described_class.perform_now }.not_to have_enqueued_job(Content::GenerateJob)
     expect(VerificationEvent.sole.extraction_status).to eq("failed")
   end
+
+  it "tries pages that were waiting for material once an answer arrives" do
+    stub_generation(page_type: "works")
+    Content::GenerateJob.perform_now(site.id, "works")                       # nothing to write from: draft, no version
+    expect(site.content_items.find_by(url: "/works")).not_to be_published
+    request = site.verification_requests.create!(request_type: "initial", slot_key: "works", question: "q", priority: 1)
+    answer!(request, "自家焙煎の豆を使ったブレンドを作りました")
+    stub_answer(value: "自家焙煎のブレンド", source_text: "自家焙煎の豆を使ったブレンド")
+
+    expect { described_class.perform_now }.to have_enqueued_job(Content::GenerateJob).with(site.id, "works")
+  end
 end

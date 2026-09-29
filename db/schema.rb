@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_030000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -151,8 +151,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_010000) do
     t.jsonb "metadata", default: {}, null: false
     t.string "person_id"
     t.bigint "site_id", null: false
+    t.string "slot_key"
     t.text "summary", null: false
     t.index ["entity_id"], name: "index_experiences_on_entity_id"
+    t.index ["site_id", "slot_key"], name: "index_experiences_on_site_id_and_slot_key"
     t.index ["site_id"], name: "index_experiences_on_site_id"
   end
 
@@ -311,6 +313,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_010000) do
   end
 
   create_table "site_policies", force: :cascade do |t|
+    t.datetime "automation_frozen_at"
     t.string "budget_action", default: "degrade", null: false
     t.datetime "created_at", null: false
     t.integer "max_links_changed_per_day"

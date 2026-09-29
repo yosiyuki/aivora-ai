@@ -93,4 +93,25 @@ RSpec.describe Content::Generator do
       expect(generated.pluck(:metadata).map { |m| m["degraded"] }).to all(be(true))
     end
   end
+
+  describe "a page with nothing to write from" do
+    it "calls no model and creates no version" do
+      stub_generation(page_type: "works")
+
+      expect(described_class.new(site, page_type: "works").generate!).to be_nil
+      expect(Llm::Fake.calls).to be_empty
+      expect(ContentVersion.count).to eq(0)
+    end
+
+    it "writes the FAQ from the site's questions once they exist" do
+      stub_generation(page_type: "faq")
+
+      version = described_class.new(site, page_type: "faq").generate!
+
+      expect(version).to be_passed
+      expect(version.body).to include("駐車場はありますか")
+      expect(version.claims.where(knowledge_type: "Question").count).to eq(2)
+      expect(site.reload.content_items.find_by(url: "/faq")).to be_published
+    end
+  end
 end

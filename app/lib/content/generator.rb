@@ -8,9 +8,14 @@ module Content
       @page_type = page_type.to_s
     end
 
+    # Returns nil, having called no model, when the page has nothing to be
+    # written from yet. The caller leaves the item as it was; answers to
+    # verification requests bring the material and the page is tried again.
     def generate!
       started_at = Time.current
       pack = KnowledgePack.for(@site, page_type: @page_type)
+      return nil unless pack.sufficient?
+
       draft = Drafter.new(pack).draft
       claims = ClaimExtractor.new(pack).extract(draft.body)
       result = Grounder.new(pack).ground(body: draft.body, claims: claims)

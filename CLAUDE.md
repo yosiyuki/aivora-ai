@@ -340,6 +340,27 @@ Content::Generator#generate!                    # one transaction: version + cla
   (never the key), a single "もう一度作る" button. `Content::Renderer` turns Markdown into sanitised HTML
   and renders `[[slot:key]]` as 「（確認中）」; the public pages use the same renderer.
 
+## Building the rest of the site
+
+Which knowledge each page type is built from is a table in code, `Content::PageMaterial` (README §28:
+structure is the product's, never the model's). `KnowledgePack.for(site, page_type:)` narrows facts and
+experiences by `slot_key` according to that table (`experiences.slot_key` exists for this, written by the
+router like `facts.slot_key`), and only `faq` / `topics` see the site's `questions`. `Interview#complete!`
+enqueues every buildable page of the archetype's structure, top first.
+
+- **No material, no model call.** `KnowledgePack#sufficient?` is checked before drafting; a page with
+  nothing to write from returns nil from `Generator#generate!`, leaves the item a draft, and costs nothing.
+  Answers to verification requests are what change that: `ProcessAnswersJob` retries every unpublished
+  page, cheaply, after each answer. The admin list says 「まだ材料が足りません」 for such a page.
+- **A visitor's question grounds a FAQ heading** the same way an experience grounds a sentence: verbatim
+  match against a `Question` row (`ContentClaim.knowledge_type` may be `Question`). A heading phrased as a
+  question (…ますか / …ですか / ？) is never a structural label, so an invented question is excised and
+  fails the version.
+- **Verification requests are issued site-wide** (`Requester#issue_for_site`) after any page is
+  generated: blanks across every page's latest version, minus slots whose fact is already known, plus
+  unfilled slots. Per-page passes would let one page's clean pass close another page's question.
+- Per-item pages (`article` / `question`) are #63; `news` and `categories` have no Phase 1 source (#64).
+
 ## Serving the public site
 
 The app is its own output CMS: pages are rendered from the stored version on request, never exported to
@@ -364,6 +385,10 @@ disk or pushed elsewhere (`TechnicalArchitecture.md` §22, §45).
   verifiable fact (README §14); hiding it would remove the mechanism Verification Requests hang off.
 - `fresh_when(@version)` is safe because a decided `ContentVersion` is read-only, so its ETag only
   changes when the page is regenerated.
+- `/sitemap.xml` and `/robots.txt` are rendered, not static files: both name the host that actually
+  served the request (`request.base_url`, not `Site#domain` — they differ while a site is tried out on
+  a PaaS hostname). A file under `public/` would shadow the route, so there must never be one. The
+  sitemap lists `ContentItem.published` only, with `lastmod` from the published version.
 
 ## Asking the owner (Verification Requests)
 
@@ -452,6 +477,16 @@ plus a validation that rejects any change; `ContentItem#publish!(version)` accep
 `unpublish!` changes status and keeps the published pointer. Adding an archetype adds structure; it never
 moves an existing URL, and knowledge changes never delete a page (status changes instead). A system that
 detects content decay must not generate its own.
+
+## Knowledge Health
+
+`Knowledge::Health.for(site)` is the launch-phase headline (README §8): a weighted average over the
+archetype's required slots, each worth its full weight while a fresh accepted fact answers it, half while
+that answer is stale or two answers disagree, nothing while there is none. The weights are the slots'
+`weight` (DatabaseSchema §65). The formula is in code and changes only by changing the file; no model is
+consulted. It is nil until an archetype exists, and an open question does not move it — the missing fact
+already does. The dashboard shows the one number plus each count phrased as something to do, linking to
+`/admin/verifications`; slot keys and thresholds never appear.
 
 ## Progressive activation
 
