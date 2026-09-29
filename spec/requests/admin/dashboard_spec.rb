@@ -85,4 +85,24 @@ RSpec.describe "Admin dashboard", type: :request do
       expect(response.body).to include("ヒアリングが終わると計算できます")
     end
   end
+
+  describe "product KPIs" do
+    it "phrases each rate as counts and never as a percentage" do
+      r = site.verification_requests.create!(request_type: "initial", slot_key: "hours", question: "q", priority: 1)
+      r.update!(status: "answered")
+      site.verification_requests.create!(request_type: "initial", slot_key: "contact", question: "q", priority: 1)
+
+      get admin_root_path
+
+      expect(response.body).to include("2 件のうち 1 件にお答えいただきました")
+      expect(response.body).not_to match(/\b50%/)
+    end
+
+    it "leaves a KPI out while it has nothing to say" do
+      get admin_root_path
+
+      expect(response.body).not_to include("お答えいただきました")
+      expect(response.body).not_to include("古くなった情報")
+    end
+  end
 end

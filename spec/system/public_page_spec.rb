@@ -31,4 +31,21 @@ RSpec.describe "Public site", :slow, type: :system do
 
     expect(page).to have_no_link("お知らせ")
   end
+
+  it "reaches an article from the article list" do
+    site.add_archetype(:media)
+    stub_generation
+    Content::GenerateJob.perform_now(site.id, "top")
+    exp = site.experiences.find_by!(summary: "自家焙煎")
+    stub_article_generation(exp)
+    Content::GenerateJob.perform_now(site.id, "article", "Experience", exp.id)
+
+    visit "/"
+    click_link "記事"
+    expect(page).to have_current_path("/articles")
+    click_link "自家焙煎"
+
+    expect(page).to have_current_path("/article/#{exp.id}")
+    expect(page).to have_text("豆は農園から直接仕入れて自分で焙煎しています")
+  end
 end

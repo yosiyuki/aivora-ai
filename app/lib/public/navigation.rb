@@ -13,8 +13,10 @@ module Public
     def for(site)
       return [] if site.nil?
 
-      published = site.content_items.published.index_by(&:archetype_page_type)
-      page_types(site).filter_map do |page_type|
+      # Item pages (one per article) are reached through their list page, not
+      # from the menu; index_by would otherwise pick an arbitrary article.
+      published = site.content_items.published.where(knowledge_type: nil).index_by(&:archetype_page_type)
+      page_types(site).reject { |t| Content::PageMaterial.item_page?(t) }.filter_map do |page_type|
         item = published[page_type]
         Entry.new(page_type: page_type, label: label_for(page_type), url: item.url) if item
       end

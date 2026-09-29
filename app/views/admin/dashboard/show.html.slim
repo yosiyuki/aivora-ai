@@ -39,6 +39,18 @@ section.card.health
         li = t("admin.health.missing_evidence", count: @health.missing_evidence)
     - if [ @health.stale_facts, @health.unverified_claims, @health.open_requests ].all?(&:zero?)
       p = t("admin.health.all_good")
+  / Product KPIs (README §36) as sentences. The rates themselves stay in
+  / Knowledge::Kpi for evaluation; a percentage tells the owner nothing.
+  ul.kpi-notes
+    - if @kpi.requests_asked.positive?
+      li = t("admin.kpi.completion", answered: @kpi.requests_answered, asked: @kpi.requests_asked)
+    - if @kpi.facts_gone_stale.any?
+      li = t("admin.kpi.stale_reduction", recovered: @kpi.facts_recovered, stale: @kpi.facts_gone_stale.size)
+    - if @kpi.verifiable_claims.positive?
+      - if @kpi.unsupported_claims.zero?
+        li = t("admin.kpi.all_supported")
+      - else
+        li = t("admin.kpi.unsupported", unsupported: @kpi.unsupported_claims, total: @kpi.verifiable_claims)
 
 / What the month's spend bought, in outcomes. No tokens, no model names, no
 / thresholds: the owner is never asked to predict usage (README §33).

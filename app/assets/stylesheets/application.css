@@ -114,3 +114,5 @@ body.public { margin: 0; }
 .health .score { font-size: 2rem; font-weight: 600; margin: 0 0 0.5rem; }
 .health-notes { list-style: none; padding: 0; margin: 0; }
 .health-notes li { padding: 0.25rem 0; }
+.kpi-notes { list-style: none; padding: 0; margin: 0.75rem 0 0; color: var(--muted); font-size: 0.9375rem; }
+.kpi-notes li { padding: 0.125rem 0; }

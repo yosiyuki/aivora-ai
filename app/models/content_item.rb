@@ -9,6 +9,8 @@ class ContentItem < ApplicationRecord
   URL_FORMAT = %r{\A/(?:[a-z0-9\-]+(?:/[a-z0-9\-]+)*)?\z}
 
   belongs_to :site
+  # The subject of a per-item page (article ← Experience, question ← Question).
+  belongs_to :knowledge, polymorphic: true, optional: true
   has_many :versions, -> { order(:version) }, class_name: "ContentVersion", dependent: :restrict_with_exception
   has_one :latest_version, -> { order(version: :desc) }, class_name: "ContentVersion"
   belongs_to :published_version, class_name: "ContentVersion", optional: true
@@ -31,12 +33,18 @@ class ContentItem < ApplicationRecord
 
   before_validation { self.language ||= site&.primary_language }
 
-  # top lives at "/", everything else under its page type.
+  # top lives at "/", everything else under its page type. A per-item page
+  # takes its knowledge row's id as the slug: it satisfies URL_FORMAT, never
+  # collides, and never changes. Readable slugs would need translation, which
+  # is the model's work and not a decision for a URL that cannot move.
   def self.url_for(page_type, slug: nil)
     return "/" if page_type.to_s == "top"
 
     slug.present? ? "/#{page_type}/#{slug}" : "/#{page_type}"
   end
+
+  def self.url_for_knowledge(page_type, knowledge) = url_for(page_type, slug: knowledge.id)
+  def item_page? = knowledge_type.present?
 
   def published? = status == "published"
   def generating? = status == "generating"
@@ -69,10 +77,12 @@ class ContentItem < ApplicationRecord
   # in between cannot be overwritten later. A claim older than the lease is
   # treated as abandoned (crashed worker) and can be taken over. Returns
   # [item, token, previous_status] or nil.
-  def self.claim_for_generation!(site, page_type)
-    item = site.content_items.find_or_create_by!(url: url_for(page_type)) do |i|
+  def self.claim_for_generation!(site, page_type, knowledge: nil)
+    url = knowledge ? url_for_knowledge(page_type, knowledge) : url_for(page_type)
+    item = site.content_items.find_or_create_by!(url: url) do |i|
       i.archetype_page_type = page_type.to_s
-      i.content_type = "page"
+      i.content_type = knowledge ? "article" : "page"
+      i.knowledge = knowledge
     end
     item.with_lock do
       return nil if item.generating? && item.updated_at > GENERATION_LEASE.ago

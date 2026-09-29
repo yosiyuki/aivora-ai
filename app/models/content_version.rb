@@ -4,7 +4,8 @@ class ContentVersion < ApplicationRecord
   include NeverDeleted
 
   GROUNDING_STATUSES = %w[pending passed failed].freeze
-  SOURCES = %w[generated regenerated].freeze
+  # listed: built in code from other pages (a list of articles); no model, no claims.
+  SOURCES = %w[generated regenerated listed].freeze
   BLANK_PATTERN = /\[\[slot:([a-z_]+)\]\]/
 
   belongs_to :content_item

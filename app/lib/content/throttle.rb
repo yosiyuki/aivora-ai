@@ -31,8 +31,9 @@ module Content
 
     # Which of the two a given generation counts as: a page that has no version
     # yet is new; anything else is a change.
-    def allowed_for?(page_type)
-      item = @site.content_items.find_by(url: ContentItem.url_for(page_type))
+    def allowed_for?(page_type, knowledge: nil)
+      url = knowledge ? ContentItem.url_for_knowledge(page_type, knowledge) : ContentItem.url_for(page_type)
+      item = @site.content_items.find_by(url: url)
       item.nil? || item.versions.none? ? new_page_allowed? : change_allowed?
     end
 

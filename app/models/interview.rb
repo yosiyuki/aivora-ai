@@ -53,6 +53,7 @@ class Interview < ApplicationRecord
       # before calling any model. Enqueued inside the transaction: Active Job
       # defers it to after commit.
       Content::PageMaterial.pages_for(site).each { |page_type| Content::GenerateJob.perform_later(site.id, page_type) }
+      Content::ItemPages.enqueue_pending(site)
     end
     self
   end
