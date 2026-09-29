@@ -357,6 +357,10 @@ disk or pushed elsewhere (`TechnicalArchitecture.md` §22, §45).
   verifiable fact (README §14); hiding it would remove the mechanism Verification Requests hang off.
 - `fresh_when(@version)` is safe because a decided `ContentVersion` is read-only, so its ETag only
   changes when the page is regenerated.
+- `/sitemap.xml` and `/robots.txt` are rendered, not static files: both name the host that actually
+  served the request (`request.base_url`, not `Site#domain` — they differ while a site is tried out on
+  a PaaS hostname). A file under `public/` would shadow the route, so there must never be one. The
+  sitemap lists `ContentItem.published` only, with `lastmod` from the published version.
 
 ## Asking the owner (Verification Requests)
 
