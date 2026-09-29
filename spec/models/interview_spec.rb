@@ -66,4 +66,32 @@ RSpec.describe Interview, type: :model do
     expect(b.reload).to have_attributes(trust_level: "owner", enabled: true)
     expect { site.sources.create!(source_type: "interview", name: "x") }.to raise_error(ActiveRecord::RecordNotUnique)
   end
+
+  it "enqueues every page the archetype can build, top first" do
+    site.add_archetype(:business, primary: true)
+    runner = Interviewing::Runner.new(interview)
+    3.times { |i| runner.answer!("答え #{i}") }
+
+    expect { interview.complete! }.to have_enqueued_job(Content::GenerateJob).exactly(3).times
+    expect(Content::GenerateJob).to have_been_enqueued.with(site.id, "top")
+    expect(Content::GenerateJob).to have_been_enqueued.with(site.id, "services")
+    expect(Content::GenerateJob).to have_been_enqueued.with(site.id, "faq")
+    expect(Content::GenerateJob).not_to have_been_enqueued.with(site.id, "news")
+  end
+
+  it "enqueues an article per experience on a media site, and none on a business site" do
+    site.add_archetype(:business, primary: true)
+    runner = Interviewing::Runner.new(interview)
+    3.times { |i| runner.answer!("答え #{i}") }
+    entity = site.entities.create!(entity_type: "business", canonical_name: "店")
+    exp = site.experiences.create!(entity: entity, summary: "s", body: "b", person_id: "owner")
+
+    expect { interview.complete! }.not_to have_enqueued_job(Content::GenerateJob).with(site.id, "article", "Experience", exp.id)
+
+    site.add_archetype(:media)
+    other = site.interviews.create!
+    Interviewing::Runner.new(other).tap { |r| 3.times { |i| r.answer!("答え #{i}") } }
+
+    expect { other.complete! }.to have_enqueued_job(Content::GenerateJob).with(site.id, "article", "Experience", exp.id)
+  end
 end

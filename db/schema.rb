@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_020000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_040000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -52,6 +52,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_020000) do
     t.datetime "created_at", null: false
     t.string "generation_previous_status"
     t.string "generation_token"
+    t.bigint "knowledge_id"
+    t.string "knowledge_type"
     t.string "language", null: false
     t.datetime "published_at"
     t.bigint "published_version_id"
@@ -61,6 +63,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_020000) do
     t.datetime "updated_at", null: false
     t.string "url", null: false
     t.index ["site_id", "archetype_page_type"], name: "index_content_items_on_site_id_and_archetype_page_type"
+    t.index ["site_id", "knowledge_type", "knowledge_id"], name: "index_content_items_one_page_per_knowledge", unique: true, where: "(knowledge_type IS NOT NULL)"
     t.index ["site_id", "url"], name: "index_content_items_on_site_id_and_url", unique: true
     t.index ["site_id"], name: "index_content_items_on_site_id"
   end
@@ -151,8 +154,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_020000) do
     t.jsonb "metadata", default: {}, null: false
     t.string "person_id"
     t.bigint "site_id", null: false
+    t.string "slot_key"
     t.text "summary", null: false
     t.index ["entity_id"], name: "index_experiences_on_entity_id"
+    t.index ["site_id", "slot_key"], name: "index_experiences_on_site_id_and_slot_key"
     t.index ["site_id"], name: "index_experiences_on_site_id"
   end
 

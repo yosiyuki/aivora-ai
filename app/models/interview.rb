@@ -48,8 +48,12 @@ class Interview < ApplicationRecord
 
       update!(status: "completed", completed_at: Time.current)
       site.update!(status: "active") if site.status == "setup"
-      # Enqueued inside the transaction: Active Job defers it to after commit.
-      Content::GenerateJob.perform_later(site.id, "top")
+      # Every page the archetype's structure can be built from (README §28),
+      # top first. Pages without material yet cost nothing: the job checks
+      # before calling any model. Enqueued inside the transaction: Active Job
+      # defers it to after commit.
+      Content::PageMaterial.pages_for(site).each { |page_type| Content::GenerateJob.perform_later(site.id, page_type) }
+      Content::ItemPages.enqueue_pending(site)
     end
     self
   end

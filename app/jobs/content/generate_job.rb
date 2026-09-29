@@ -12,7 +12,9 @@ module Content
 
     discard_on ActiveRecord::RecordNotFound
 
-    def perform(site_id, page_type)
+    # knowledge_type / knowledge_id name the subject of a per-item page
+    # (article ← Experience, question ← Question); nil for a whole-site page.
+    def perform(site_id, page_type, knowledge_type = nil, knowledge_id = nil)
       site = Site.find(site_id)
       # Emergency Stop (README §34): the owner has frozen generation. Nothing
       # else stops — this job is the only thing that writes pages.
@@ -21,21 +23,30 @@ module Content
         return
       end
 
+      knowledge = knowledge_type ? knowledge_type.constantize.find(knowledge_id) : nil
       # Aggregate Policy (README §32), decided before the claim so a deferred
       # page never shows as generating. Reaching a cap defers to the next
       # window; it is not a failure and leaves no failed version.
-      unless Content::Throttle.for(site).allowed_for?(page_type)
+      unless Content::Throttle.for(site).allowed_for?(page_type, knowledge: knowledge)
         Rails.logger.info("generate: #{page_type} deferred, aggregate cap reached for site #{site_id}")
         return
       end
 
-      claim = ContentItem.claim_for_generation!(site, page_type) or return
+      claim = ContentItem.claim_for_generation!(site, page_type, knowledge: knowledge) or return
       item, token, previous_status = claim
 
       begin
-        version = Content::Generator.new(site, page_type: page_type).generate!
-        item.release_generation!(token, to: version.passed? ? "published" : previous_status)
-        issue_verification_requests(site, version)
+        version = Content::Generator.new(site, page_type: page_type, knowledge: knowledge).generate!
+        if version
+          item.release_generation!(token, to: version.passed? ? "published" : previous_status)
+          # A new article changes the list page; the list is code, not a model call.
+          Content::Lister.refresh!(site) if version.passed? && Content::PageMaterial.item_page?(page_type)
+        else
+          # Nothing to write from yet: the item stays a draft, no model was
+          # called, and the questions below are what will change that.
+          item.release_generation!(token, to: previous_status)
+        end
+        issue_verification_requests(site)
       rescue StandardError => e
         # Any failure after the claim: record it and hand the row back. An LLM
         # error is not retried blindly — a retry would spend the budget again.
@@ -47,11 +58,11 @@ module Content
 
     private
 
-    # The blanks in the page just written are the questions to ask the owner
-    # (README §14). A failed version still tells us which facts are missing,
-    # so its blanks count too.
-    def issue_verification_requests(site, version)
-      Verification::Requester.new(site).issue_for(version)
+    # The blanks across the site's pages are the questions to ask the owner
+    # (README §14). Site-wide rather than per page, so N pages generated in
+    # any order cannot close each other's questions.
+    def issue_verification_requests(site)
+      Verification::Requester.new(site).issue_for_site
     rescue StandardError => e
       # Never fail a generated page over the follow-up questions.
       Rails.logger.error("verification: could not issue requests: #{e.class}: #{e.message}")

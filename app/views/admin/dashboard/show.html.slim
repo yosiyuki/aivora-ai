@@ -28,6 +28,40 @@ section.card.automation
   - else
     = button_to t("admin.automation.freeze"), freeze_admin_automation_path, method: :post, class: "secondary"
 
+/ Knowledge Health (README §8): one number, and each count translated into
+/ something the owner can act on. Slot keys and thresholds never appear.
+section.card.health
+  h2 = t("admin.health.heading")
+  - if @health.score.nil?
+    p.lead = t("admin.health.not_yet")
+  - else
+    p.score = t("admin.health.score", score: @health.score)
+    ul.health-notes
+      - if @health.stale_facts.positive?
+        li = link_to t("admin.health.stale", count: @health.stale_facts), admin_verifications_path
+      - if @health.unverified_claims.positive?
+        li = link_to t("admin.health.unverified", count: @health.unverified_claims), admin_verifications_path
+      - if @health.open_requests.positive?
+        li = link_to t("admin.health.open_requests", count: @health.open_requests), admin_verifications_path
+      - if @health.conflicting_facts.positive?
+        li = t("admin.health.conflicting", count: @health.conflicting_facts)
+      - if @health.missing_evidence.positive?
+        li = t("admin.health.missing_evidence", count: @health.missing_evidence)
+    - if [ @health.stale_facts, @health.unverified_claims, @health.open_requests ].all?(&:zero?)
+      p = t("admin.health.all_good")
+  / Product KPIs (README §36) as sentences. The rates themselves stay in
+  / Knowledge::Kpi for evaluation; a percentage tells the owner nothing.
+  ul.kpi-notes
+    - if @kpi.requests_asked.positive?
+      li = t("admin.kpi.completion", answered: @kpi.requests_answered, asked: @kpi.requests_asked)
+    - if @kpi.facts_gone_stale.any?
+      li = t("admin.kpi.stale_reduction", recovered: @kpi.facts_recovered, stale: @kpi.facts_gone_stale.size)
+    - if @kpi.verifiable_claims.positive?
+      - if @kpi.unsupported_claims.zero?
+        li = t("admin.kpi.all_supported")
+      - else
+        li = t("admin.kpi.unsupported", unsupported: @kpi.unsupported_claims, total: @kpi.verifiable_claims)
+
 / What the month's spend bought, in outcomes. No tokens, no model names, no
 / thresholds: the owner is never asked to predict usage (README §33).
 section.card.usage

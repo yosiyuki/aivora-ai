@@ -72,4 +72,27 @@ RSpec.describe Verification::ProcessAnswersJob do
     expect(site.primary_entity.facts.for_slot("hours").sole).to be_accepted
     expect(site.reload.top_page.versions.count).to eq(1), "the regeneration was enqueued but the frozen job did nothing"
   end
+
+  it "tries pages that were waiting for material once an answer arrives" do
+    stub_generation(page_type: "works")
+    Content::GenerateJob.perform_now(site.id, "works")                       # nothing to write from: draft, no version
+    expect(site.content_items.find_by(url: "/works")).not_to be_published
+    request = site.verification_requests.create!(request_type: "initial", slot_key: "works", question: "q", priority: 1)
+    answer!(request, "自家焙煎の豆を使ったブレンドを作りました")
+    stub_answer(value: "自家焙煎のブレンド", source_text: "自家焙煎の豆を使ったブレンド")
+
+    expect { described_class.perform_now }.to have_enqueued_job(Content::GenerateJob).with(site.id, "works")
+  end
+
+  it "gives a new experience its own article on a media site" do
+    site.add_archetype(:media)
+    request = request_for("story")
+    answer!(request, "豆は農園から直接仕入れています")
+    Llm::Fake.respond(:extraction) { { "answered" => true, "value" => "農園直送", "source_text" => "豆は農園から直接仕入れています", "confidence" => 0.9 } }
+    # The answer processor writes a Fact, not an Experience; simulate the
+    # experience arriving the way the router would deliver it.
+    exp = site.experiences.create!(entity: site.primary_entity, summary: "農園直送", body: "豆は農園から直接仕入れています", person_id: "owner", slot_key: "story")
+
+    expect { described_class.perform_now }.to have_enqueued_job(Content::GenerateJob).with(site.id, "article", "Experience", exp.id)
+  end
 end

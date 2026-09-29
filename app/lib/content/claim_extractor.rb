@@ -23,7 +23,8 @@ module Content
 
     def input_for(body)
       refs = @pack.facts.map { |f| "#{f.ref}: #{@pack.slot_label(f.slot_key) || f.attribute_key} = #{f.value}" } +
-             @pack.experiences.map { |e| "#{e.ref}: #{e.summary}" }
+             @pack.experiences.map { |e| "#{e.ref}: #{e.summary}" } +
+             @pack.questions.map { |q| "#{q.ref}: #{q.text}" }
       "# 材料一覧\n#{refs.join("\n").presence || "（なし）"}\n\n# 本文\n#{body}"
     end
   end

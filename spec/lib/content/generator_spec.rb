@@ -93,4 +93,47 @@ RSpec.describe Content::Generator do
       expect(generated.pluck(:metadata).map { |m| m["degraded"] }).to all(be(true))
     end
   end
+
+  describe "a page with nothing to write from" do
+    it "calls no model and creates no version" do
+      stub_generation(page_type: "works")
+
+      expect(described_class.new(site, page_type: "works").generate!).to be_nil
+      expect(Llm::Fake.calls).to be_empty
+      expect(ContentVersion.count).to eq(0)
+    end
+
+    it "writes the FAQ from the site's questions once they exist" do
+      stub_generation(page_type: "faq")
+
+      version = described_class.new(site, page_type: "faq").generate!
+
+      expect(version).to be_passed
+      expect(version.body).to include("駐車場はありますか")
+      expect(version.claims.where(knowledge_type: "Question").count).to eq(2)
+      expect(site.reload.content_items.find_by(url: "/faq")).to be_published
+    end
+  end
+
+  describe "an article about one experience" do
+    it "is titled and built from that experience alone, with the site's facts in support" do
+      experience = site.experiences.find_by!(summary: "自家焙煎")
+      stub_article_generation(experience)
+
+      version = described_class.new(site, page_type: "article", knowledge: experience).generate!
+
+      item = site.reload.content_items.find_by!(knowledge: experience)
+      expect(item).to have_attributes(url: "/article/#{experience.id}", content_type: "article", status: "published")
+      expect(version.title).to eq("自家焙煎"), "the owner's own summary"
+      expect(version.claims.sole.knowledge).to eq(experience)
+      pack = Content::KnowledgePack.for(site, page_type: "article", knowledge: experience)
+      expect(pack.experiences.map(&:id)).to eq([ experience.id ])
+      expect(pack.facts).not_to be_empty
+    end
+
+    it "has nothing to write without a subject" do
+      expect(described_class.new(site, page_type: "article").generate!).to be_nil
+      expect(Llm::Fake.calls).to be_empty
+    end
+  end
 end
