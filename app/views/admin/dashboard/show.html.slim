@@ -18,6 +18,16 @@ section.card
     p.lead = t("admin.dashboard.generation_failed")
     = button_to t("content.regenerate"), regenerate_admin_content_item_path(@top_page), method: :post
 
+/ Emergency Stop (README §34). Freezing stops generation only, and the text
+/ says so: observation continuing is the point, not a caveat.
+section.card.automation
+  - if @policy.frozen?
+    p.lead = t("admin.automation.frozen_since", date: l(@policy.automation_frozen_at.to_date, format: :long))
+    p = t("admin.automation.still_running")
+    = button_to t("admin.automation.resume"), resume_admin_automation_path, method: :post
+  - else
+    = button_to t("admin.automation.freeze"), freeze_admin_automation_path, method: :post, class: "secondary"
+
 / Knowledge Health (README §8): one number, and each count translated into
 / something the owner can act on. Slot keys and thresholds never appear.
 section.card.health

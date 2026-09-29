@@ -126,4 +126,27 @@ RSpec.describe Content::GenerateJob, type: :job do
       expect(site.reload.top_page).to be_published
     end
   end
+
+  describe "emergency stop (README §34)" do
+    it "does nothing while automation is frozen: no model call, no version, no item" do
+      site.policy.freeze_automation!
+      stub_generation
+
+      described_class.perform_now(site.id, "top")
+
+      expect(Llm::Fake.calls).to be_empty
+      expect(ContentVersion.count).to eq(0)
+      expect(site.content_items.find_by(url: "/")).to be_nil
+    end
+
+    it "generates again once resumed" do
+      site.policy.freeze_automation!
+      site.policy.resume_automation!
+      stub_generation
+
+      described_class.perform_now(site.id, "top")
+
+      expect(site.reload.top_page).to be_published
+    end
+  end
 end

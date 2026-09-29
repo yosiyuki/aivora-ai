@@ -7,6 +7,7 @@ module Admin
       @top_page = @site.top_page
       @usage = Llm::Usage::Report.for(@site)
       @throttle = Content::Throttle.for(@site)
+      @policy = @site.policy
       @health = Knowledge::Health.for(@site)
       @kpi = Knowledge::Kpi.for(@site)
     end

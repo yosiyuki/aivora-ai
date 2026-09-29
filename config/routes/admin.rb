@@ -16,6 +16,11 @@ namespace :admin do
       post :skip
     end
   end
+  # Emergency Stop (README §34): freeze and resume page generation.
+  resource :automation, only: [] do
+    post :freeze
+    post :resume
+  end
 end
 
 resource :session, only: %i[new create destroy]

@@ -23,6 +23,14 @@ class SitePolicy < ApplicationRecord
   def new_pages_per_week_cap = max_new_pages_per_week || DEFAULT_MAX_NEW_PAGES_PER_WEEK
   def pages_changed_per_day_cap = max_pages_changed_per_day || DEFAULT_MAX_PAGES_CHANGED_PER_DAY
 
+  # Emergency Stop (README §34), the manual kind. Freezing stops generation
+  # only: observation keeps running, or stale facts would go undetected while
+  # the site kept serving them (§33). Automatic triggers wait for the traffic
+  # and index data the operation phase brings.
+  def frozen? = automation_frozen_at.present?
+  def freeze_automation! = update!(automation_frozen_at: automation_frozen_at || Time.current)
+  def resume_automation! = update!(automation_frozen_at: nil)
+
   # Phase 1 always degrades. `stop` would halt observation as well, and then
   # stale facts stop being detected while the site keeps serving them —
   # the one state this product must avoid (Technical Architecture §38).

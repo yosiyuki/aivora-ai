@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe Verification::ProcessAnswersJob do
+  include ActiveJob::TestHelper
+
   let!(:site) { cafe_site }
   let(:user) { create_admin }
 
@@ -55,6 +57,20 @@ RSpec.describe Verification::ProcessAnswersJob do
 
     expect { described_class.perform_now }.not_to have_enqueued_job(Content::GenerateJob)
     expect(VerificationEvent.sole.extraction_status).to eq("failed")
+  end
+
+  it "still turns an answer into knowledge while generation is frozen, and does not rebuild" do
+    stub_generation
+    Content::GenerateJob.perform_now(site.id, "top")
+    request = site.verification_requests.find_by(slot_key: "hours")
+    answer!(request, "朝7時から夕方5時まで開けています")
+    stub_answer(value: "7時-17時", source_text: "朝7時から夕方5時まで")
+    site.policy.freeze_automation!
+
+    perform_enqueued_jobs { described_class.perform_now }
+
+    expect(site.primary_entity.facts.for_slot("hours").sole).to be_accepted
+    expect(site.reload.top_page.versions.count).to eq(1), "the regeneration was enqueued but the frozen job did nothing"
   end
 
   it "tries pages that were waiting for material once an answer arrives" do
