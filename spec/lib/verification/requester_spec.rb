@@ -74,4 +74,26 @@ RSpec.describe Verification::Requester do
     expect(media.verification_requests.pluck(:slot_key)).not_to include("hours"),
       "media has no hours slot, so the question never arises"
   end
+
+  it "does not let one page's pass close a question raised by another page's blank" do
+    generate!                                                  # top: hours blank -> request
+    hours = site.verification_requests.find_by(slot_key: "hours")
+    faq = site.content_items.create!(archetype_page_type: "faq", url: "/faq")
+    faq.publish!(faq.append_version!(body: "よくある質問", title: "faq").tap { |v| v.decide!(:passed) })   # no blanks at all
+
+    described_class.new(site.reload).issue_for_site
+
+    expect(hours.reload.status).to eq("open")
+  end
+
+  it "does not ask about a blank whose fact is already known" do
+    generate!
+    fact = site.primary_entity.facts.create!(attribute_key: "営業時間", slot_key: "hours", value_json: { "value" => "7-17" }, confidence: 0.9)
+    fact.accept!(evidence: owner_evidence(site, text: "7-17 です"))
+
+    described_class.new(site.reload).issue_for_site
+
+    expect(site.verification_requests.open.where(slot_key: "hours")).to be_empty,
+      "the page still shows the blank, but that is a rebuild waiting, not a question"
+  end
 end

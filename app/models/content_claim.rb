@@ -6,7 +6,7 @@ class ContentClaim < ApplicationRecord
 
   KINDS = Claim::KINDS
   REVIEW_STATUSES = %w[grounded blank excised general].freeze
-  KNOWLEDGE_TYPES = %w[Fact Experience].freeze
+  KNOWLEDGE_TYPES = %w[Fact Experience Question].freeze
 
   belongs_to :content_version
   belongs_to :knowledge, polymorphic: true, optional: true

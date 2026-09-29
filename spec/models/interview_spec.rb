@@ -66,4 +66,16 @@ RSpec.describe Interview, type: :model do
     expect(b.reload).to have_attributes(trust_level: "owner", enabled: true)
     expect { site.sources.create!(source_type: "interview", name: "x") }.to raise_error(ActiveRecord::RecordNotUnique)
   end
+
+  it "enqueues every page the archetype can build, top first" do
+    site.add_archetype(:business, primary: true)
+    runner = Interviewing::Runner.new(interview)
+    3.times { |i| runner.answer!("答え #{i}") }
+
+    expect { interview.complete! }.to have_enqueued_job(Content::GenerateJob).exactly(3).times
+    expect(Content::GenerateJob).to have_been_enqueued.with(site.id, "top")
+    expect(Content::GenerateJob).to have_been_enqueued.with(site.id, "services")
+    expect(Content::GenerateJob).to have_been_enqueued.with(site.id, "faq")
+    expect(Content::GenerateJob).not_to have_been_enqueued.with(site.id, "news")
+  end
 end

@@ -10,8 +10,14 @@ module ContentFixtures
       fact.accept!(evidence: owner_evidence(site, text: "渋谷でカフェをやっています"))
     end
     if site.experiences.none?
-      site.experiences.create!(entity: entity, summary: "自家焙煎", body: "豆は農園から直接仕入れて自分で焙煎しています", person_id: "owner")
-      site.experiences.create!(entity: entity, summary: "静かな店内", body: "一人でも長居しやすい静かな雰囲気にしています", person_id: "owner")
+      # Slot-keyed, the way the router writes them: `story` feeds the profile
+      # page, `what` feeds services and profile.
+      site.experiences.create!(entity: entity, summary: "自家焙煎", body: "豆は農園から直接仕入れて自分で焙煎しています", person_id: "owner", slot_key: "story")
+      site.experiences.create!(entity: entity, summary: "静かな店内", body: "一人でも長居しやすい静かな雰囲気にしています", person_id: "owner", slot_key: "what")
+    end
+    if site.questions.none?
+      site.questions.create!(entity: entity, text: "駐車場はありますか").add_evidence!(owner_evidence(site, text: "駐車場はありますかとよく聞かれます"))
+      site.questions.create!(entity: entity, text: "予約はできますか").add_evidence!(owner_evidence(site, text: "予約はできますかとよく聞かれます"))
     end
     site.goals.create!(name: "来てほしい", description: "近所の人にもっと来てほしい", metric: "visits_or_inquiries") if site.goals.none?
     site
@@ -42,9 +48,38 @@ module ContentFixtures
     ]
   end
 
-  def stub_generation(draft: cafe_draft, claims: nil)
+  # Stubs both calls for the top page. Pass page_type: to stub another page
+  # type instead; each page's pack differs, so the claims are built against
+  # the pack of the page being generated.
+  def stub_generation(draft: nil, claims: nil, page_type: "top")
+    draft ||= page_type == "faq" ? cafe_faq_draft : cafe_draft
     Llm::Fake.respond(:drafting) { draft }
-    Llm::Fake.respond(:grounding) { |call| { "claims" => claims || cafe_claims(Content::KnowledgePack.for(Site.current, page_type: "top")) } }
+    Llm::Fake.respond(:grounding) do |_call|
+      pack = Content::KnowledgePack.for(Site.current, page_type: page_type)
+      { "claims" => claims || (page_type == "faq" ? cafe_faq_claims(pack) : cafe_claims(pack)) }
+    end
+  end
+
+  def cafe_faq_draft = <<~MD
+    # よくある質問
+
+    ## 駐車場はありますか
+    場所は渋谷です。
+
+    ## 予約はできますか
+    一人でも長居しやすい静かな雰囲気にしています。
+  MD
+
+  def cafe_faq_claims(pack)
+    f = pack.facts.first.ref
+    q1, q2 = pack.questions.map(&:ref)
+    e = pack.experiences.find { |x| x.summary == "静かな店内" }.ref
+    [
+      { "statement" => "## 駐車場はありますか", "kind" => "experiential", "support" => { "ref" => q1 }, "slot_key" => nil, "confidence" => 0.9 },
+      { "statement" => "場所は渋谷です。", "kind" => "verifiable", "support" => { "ref" => f }, "slot_key" => "location", "confidence" => 0.95 },
+      { "statement" => "## 予約はできますか", "kind" => "experiential", "support" => { "ref" => q2 }, "slot_key" => nil, "confidence" => 0.9 },
+      { "statement" => "一人でも長居しやすい静かな雰囲気にしています。", "kind" => "experiential", "support" => { "ref" => e }, "slot_key" => nil, "confidence" => 0.9 }
+    ]
   end
 end
 

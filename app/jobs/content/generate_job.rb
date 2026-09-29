@@ -19,8 +19,14 @@ module Content
 
       begin
         version = Content::Generator.new(site, page_type: page_type).generate!
-        item.release_generation!(token, to: version.passed? ? "published" : previous_status)
-        issue_verification_requests(site, version)
+        if version
+          item.release_generation!(token, to: version.passed? ? "published" : previous_status)
+        else
+          # Nothing to write from yet: the item stays a draft, no model was
+          # called, and the questions below are what will change that.
+          item.release_generation!(token, to: previous_status)
+        end
+        issue_verification_requests(site)
       rescue StandardError => e
         # Any failure after the claim: record it and hand the row back. An LLM
         # error is not retried blindly — a retry would spend the budget again.
@@ -32,11 +38,11 @@ module Content
 
     private
 
-    # The blanks in the page just written are the questions to ask the owner
-    # (README §14). A failed version still tells us which facts are missing,
-    # so its blanks count too.
-    def issue_verification_requests(site, version)
-      Verification::Requester.new(site).issue_for(version)
+    # The blanks across the site's pages are the questions to ask the owner
+    # (README §14). Site-wide rather than per page, so N pages generated in
+    # any order cannot close each other's questions.
+    def issue_verification_requests(site)
+      Verification::Requester.new(site).issue_for_site
     rescue StandardError => e
       # Never fail a generated page over the follow-up questions.
       Rails.logger.error("verification: could not issue requests: #{e.class}: #{e.message}")
