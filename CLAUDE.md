@@ -446,6 +446,16 @@ plus a validation that rejects any change; `ContentItem#publish!(version)` accep
 moves an existing URL, and knowledge changes never delete a page (status changes instead). A system that
 detects content decay must not generate its own.
 
+## Knowledge Health
+
+`Knowledge::Health.for(site)` is the launch-phase headline (README §8): a weighted average over the
+archetype's required slots, each worth its full weight while a fresh accepted fact answers it, half while
+that answer is stale or two answers disagree, nothing while there is none. The weights are the slots'
+`weight` (DatabaseSchema §65). The formula is in code and changes only by changing the file; no model is
+consulted. It is nil until an archetype exists, and an open question does not move it — the missing fact
+already does. The dashboard shows the one number plus each count phrased as something to do, linking to
+`/admin/verifications`; slot keys and thresholds never appear.
+
 ## Progressive activation
 
 There is no launch/operation mode switch and **no `mode` state variable** (`README.md` §37;
