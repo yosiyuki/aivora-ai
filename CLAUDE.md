@@ -456,6 +456,13 @@ consulted. It is nil until an archetype exists, and an open question does not mo
 already does. The dashboard shows the one number plus each count phrased as something to do, linking to
 `/admin/verifications`; slot keys and thresholds never appear.
 
+`Knowledge::Kpi.for(site)` holds README §36's product KPIs as numbers for evaluation (§35): verification
+completion (answered over asked; superseded requests are neither), stale fact reduction this month (from
+`knowledge_versions` snapshots, since going stale and being re-accepted both leave one), unsupported claim
+rate and groundedness over published versions' claims, and cost per page by delegation. Rollback rate is
+nil until the decision ledger exists. The dashboard shows each as counts in a sentence, never as a rate,
+and omits a KPI that has nothing to say yet.
+
 ## Progressive activation
 
 There is no launch/operation mode switch and **no `mode` state variable** (`README.md` §37;
