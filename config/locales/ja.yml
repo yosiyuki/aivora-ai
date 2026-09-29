@@ -119,6 +119,12 @@ ja:
         one: 裏付けを待っている情報が %{count} 件あります
         other: 裏付けを待っている情報が %{count} 件あります
       all_good: いま確認が必要なことはありません。
+    # Product KPIs (README §36) phrased as outcomes; no rates on screen.
+    kpi:
+      completion: 教えてほしいこと %{asked} 件のうち %{answered} 件にお答えいただきました。
+      stale_reduction: 今月古くなった情報 %{stale} 件のうち %{recovered} 件を確認できました。
+      unsupported: 公開中のページで、確認できていない箇所が %{total} 箇所中 %{unsupported} 箇所あります。
+      all_supported: 公開中の内容はすべて確認済みです。
     # Cost shown as outcomes, never as a spend target (README §33). Users are
     # not asked to predict their usage, so no figure here is a goal to hit.
     usage:
