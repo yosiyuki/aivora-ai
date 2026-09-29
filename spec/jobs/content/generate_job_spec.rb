@@ -90,4 +90,40 @@ RSpec.describe Content::GenerateJob, type: :job do
   it "discards when the site no longer exists" do
     expect { described_class.perform_now(999_999, "top") }.not_to raise_error
   end
+
+  describe "aggregate caps (README §32)" do
+    it "defers a new page once the weekly cap is reached, without calling the model or touching the item" do
+      site.policy.update!(max_new_pages_per_week: 0)
+      stub_generation
+
+      described_class.perform_now(site.id, "top")
+
+      expect(Llm::Fake.calls).to be_empty
+      expect(ContentVersion.count).to eq(0)
+      expect(site.content_items.find_by(url: "/")).to be_nil, "no item is created for a deferred page"
+    end
+
+    it "defers a regeneration once the daily change cap is reached" do
+      stub_generation
+      described_class.perform_now(site.id, "top")
+      site.policy.update!(max_pages_changed_per_day: 0)
+      Current.content_throttles = nil
+      Llm::Fake.reset!
+      stub_generation
+
+      described_class.perform_now(site.id, "top")
+
+      expect(Llm::Fake.calls).to be_empty
+      expect(site.reload.top_page.versions.count).to eq(1)
+      expect(site.top_page).to be_published, "the published page is untouched"
+    end
+
+    it "generates normally under the caps" do
+      stub_generation
+
+      described_class.perform_now(site.id, "top")
+
+      expect(site.reload.top_page).to be_published
+    end
+  end
 end

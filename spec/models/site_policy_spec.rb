@@ -31,4 +31,18 @@ RSpec.describe SitePolicy, type: :model do
   it "degrades in phase 1 even when the action says stop" do
     expect(site.policy.tap { |p| p.update!(budget_action: "stop") }).to be_degrade_only
   end
+
+  it "starts with conservative volume caps" do
+    policy = site.policy
+
+    expect(policy.new_pages_per_week_cap).to eq(10)
+    expect(policy.pages_changed_per_day_cap).to eq(5)
+  end
+
+  it "rejects a negative cap" do
+    policy = site.policy
+    policy.max_new_pages_per_week = -1
+
+    expect(policy).not_to be_valid
+  end
 end

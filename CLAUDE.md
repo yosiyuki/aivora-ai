@@ -195,6 +195,13 @@ table as **control data, not telemetry**.
 - Present cost to users as outcomes, never as raw spend targets ("月$50なら記事3〜5本"). Users are not
   asked to predict their usage.
 
+Volume is bounded too (Aggregate Policy, README §32): `Content::Throttle.for(site)` reads
+`max_new_pages_per_week` and `max_pages_changed_per_day` from `site_policies` (defaults 10 / 5, and a NULL
+column still means the default). It counts **versions**, not items — a page's first version is a new page,
+any later one is a change — in the site's own week and day. `Content::GenerateJob` checks it before
+claiming, so a deferred page never shows as generating; reaching a cap defers to the next window and
+leaves no failed version. The three remaining caps have no action to bound yet and are not read.
+
 In code: the ceiling lives in `site_policies` (`DatabaseSchema.md` §55, reached through `Site#policy`,
 which creates the row with the conservative default rather than letting a site run uncapped). That table
 is the home of every aggregate limit, not just money — with no per-action approval those caps and

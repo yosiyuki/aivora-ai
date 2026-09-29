@@ -17,6 +17,14 @@ module Content
     def perform(site_id, page_type, knowledge_type = nil, knowledge_id = nil)
       site = Site.find(site_id)
       knowledge = knowledge_type ? knowledge_type.constantize.find(knowledge_id) : nil
+      # Aggregate Policy (README §32), decided before the claim so a deferred
+      # page never shows as generating. Reaching a cap defers to the next
+      # window; it is not a failure and leaves no failed version.
+      unless Content::Throttle.for(site).allowed_for?(page_type, knowledge: knowledge)
+        Rails.logger.info("generate: #{page_type} deferred, aggregate cap reached for site #{site_id}")
+        return
+      end
+
       claim = ContentItem.claim_for_generation!(site, page_type, knowledge: knowledge) or return
       item, token, previous_status = claim
 

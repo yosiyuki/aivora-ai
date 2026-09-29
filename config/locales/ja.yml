@@ -143,6 +143,9 @@ ja:
         other: あと %{count} ページほど作れる見込みです
       amount: （$%{spent} / $%{limit}）
       degraded: 今月の予算を使い切ったので、軽いモデルに切り替えて続けています。根拠の確認はこれまでどおり行っています。
+      # Aggregate caps (README §32). Deferred, not stopped, so say when it resumes.
+      new_pages_capped: 今週作れるページ数の上限に達しました。来週、続きを作ります。
+      changes_capped: 今日作り直せるページ数の上限に達しました。明日、続きを作ります。
   # Verification requests. The question names the slot's label, never its key
   # (README §27), and the owner is told what the answer is for.
   verification:
@@ -164,6 +167,7 @@ ja:
       recheck_aged: 「%{label}」を %{months} か月ほど確認できていません。今も「%{value}」で合っていますか。
   content:
     answer_blanks: 分かるものを教える
+    change_cap_reached: 今日はこれ以上作り直せません。明日また試せます。
     waiting_for_material: まだ材料が足りません。教えてほしいことに答えると作れるようになります。
     title: ページ
     none_yet: まだページはありません。
