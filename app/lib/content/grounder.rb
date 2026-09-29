@@ -29,7 +29,10 @@ module Content
           notes << "claim not found in body: #{d[:statement].first(40)}"
           next
         end
-        d = d.merge(kind: "general", verdict: :general, knowledge: nil, slot_key: nil) if sentences[idx].kind == :heading && structural_heading?(sentences[idx].text)
+        # A short label heading (「どんなお店か」) is structure and kept; a heading
+        # already grounded by a visitor's question keeps that grounding.
+        structural = sentences[idx].kind == :heading && structural_heading?(sentences[idx].text) && d[:knowledge]&.first != "Question"
+        d = d.merge(kind: "general", verdict: :general, knowledge: nil, slot_key: nil) if structural
         covered[idx] << d[:verdict]
         if %i[blank excised].include?(d[:verdict])
           sentences[idx].remove = true
@@ -88,6 +91,12 @@ module Content
       exp = experience_covering(statement, preferred: @pack.experience_by_ref(ref))
       return base.merge(kind: "experiential", verdict: :grounded, knowledge: [ "Experience", exp.id ]) if exp
 
+      # A question visitors ask, in its own words, grounds the heading that
+      # repeats it (FAQ / topics). Same rule as an experience: the text must
+      # match, a reference alone never counts.
+      question = question_covering(statement, preferred: @pack.question_by_ref(ref))
+      return base.merge(kind: "experiential", verdict: :grounded, knowledge: [ "Question", question.id ]) if question
+
       if kind == "verifiable" && (key = slot_key_for(claim, fact))
         base.merge(verdict: :blank, slot_key: key)
       else
@@ -119,6 +128,11 @@ module Content
     def experience_covering(statement, preferred: nil)
       candidates = [ preferred, *@pack.experiences ].compact.uniq
       candidates.find { |e| TextNormalizer.covers?(e.body, statement) }
+    end
+
+    def question_covering(statement, preferred: nil)
+      candidates = [ preferred, *@pack.questions ].compact.uniq
+      candidates.find { |q| TextNormalizer.covers?(q.text, statement) }
     end
 
     # A blank needs a real slot; without one the sentence is simply removed.
@@ -161,9 +175,14 @@ module Content
     end
 
     # A short heading with no numbers is a label ("どんなお店か"), not a claim.
+    # A heading phrased as a visitor's question (「予約はできますか」) is a claim
+    # that someone asks it, not a label: it has to be grounded by a Question
+    # row or it goes. An indirect label like 「どんなお店か」 stays structural.
+    QUESTION_HEADING = /(ますか|ですか|でしょうか|[？?])\s*\z/
+
     def structural_heading?(text)
       t = text.sub(/\A\s*#+\s*/, "").strip
-      t.length <= 20 && !t.match?(SPECIFIC) && !t.match?(SLOT)
+      t.length <= 20 && !t.match?(SPECIFIC) && !t.match?(SLOT) && !t.match?(QUESTION_HEADING)
     end
 
     # A sentence built around a known placeholder is a blank by construction;

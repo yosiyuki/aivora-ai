@@ -136,6 +136,7 @@ ja:
       recheck_aged: 「%{label}」を %{months} か月ほど確認できていません。今も「%{value}」で合っていますか。
   content:
     answer_blanks: 分かるものを教える
+    waiting_for_material: まだ材料が足りません。教えてほしいことに答えると作れるようになります。
     title: ページ
     none_yet: まだページはありません。
     columns:
