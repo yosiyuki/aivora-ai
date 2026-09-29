@@ -352,7 +352,17 @@ enqueues every buildable page of the archetype's structure, top first.
 - **Verification requests are issued site-wide** (`Requester#issue_for_site`) after any page is
   generated: blanks across every page's latest version, minus slots whose fact is already known, plus
   unfilled slots. Per-page passes would let one page's clean pass close another page's question.
-- Per-item pages (`article` / `question`) are #63; `news` and `categories` have no Phase 1 source (#64).
+- **Per-item pages are one knowledge row each**: `article` ← `Experience`, `question` ← `Question`
+  (`Content::PageMaterial::ITEM_PAGES`). The subject is chosen mechanically — a row is a page — never by a
+  model deciding what deserves an article; that is the operation-phase planner. The item carries
+  `knowledge_type` / `knowledge_id`, the slug is the row's id (`/article/12`: satisfies `URL_FORMAT`,
+  never collides, never moves), and the title is the row's own words (`summary` / `text`).
+  `Content::ItemPages.enqueue_pending(site)` runs after the interview and after every answer.
+- **List pages are code, not a model call.** `Content::Lister` builds `/articles` from the published
+  article pages, publishes it with `source: "listed"` and no claims (a list of the site's own pages is
+  navigation, not a claim), and refreshes it whenever an article publishes. No articles, no list page.
+- Item page types never appear in `Public::Navigation`; their list page does.
+- `news` and `categories` have no Phase 1 source (#64).
 
 ## Serving the public site
 

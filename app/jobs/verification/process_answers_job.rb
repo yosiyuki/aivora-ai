@@ -33,6 +33,9 @@ module Verification
       (page_types(request.site, slot_key) | unpublished_page_types(request.site)).each do |page_type|
         Content::GenerateJob.perform_later(request.site_id, page_type)
       end
+      # An answer can also add an Experience or a Question, each of which is
+      # owed its own page on a media / knowledge_base site.
+      Content::ItemPages.enqueue_pending(request.site)
     end
 
     def unpublished_page_types(site)

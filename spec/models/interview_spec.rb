@@ -78,4 +78,20 @@ RSpec.describe Interview, type: :model do
     expect(Content::GenerateJob).to have_been_enqueued.with(site.id, "faq")
     expect(Content::GenerateJob).not_to have_been_enqueued.with(site.id, "news")
   end
+
+  it "enqueues an article per experience on a media site, and none on a business site" do
+    site.add_archetype(:business, primary: true)
+    runner = Interviewing::Runner.new(interview)
+    3.times { |i| runner.answer!("答え #{i}") }
+    entity = site.entities.create!(entity_type: "business", canonical_name: "店")
+    exp = site.experiences.create!(entity: entity, summary: "s", body: "b", person_id: "owner")
+
+    expect { interview.complete! }.not_to have_enqueued_job(Content::GenerateJob).with(site.id, "article", "Experience", exp.id)
+
+    site.add_archetype(:media)
+    other = site.interviews.create!
+    Interviewing::Runner.new(other).tap { |r| 3.times { |i| r.answer!("答え #{i}") } }
+
+    expect { other.complete! }.to have_enqueued_job(Content::GenerateJob).with(site.id, "article", "Experience", exp.id)
+  end
 end

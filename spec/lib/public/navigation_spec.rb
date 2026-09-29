@@ -52,4 +52,17 @@ RSpec.describe Public::Navigation do
 
     expect(queries.size).to eq(1)
   end
+
+  it "links the article list, never an individual article" do
+    site.add_archetype(:media)
+    exp = site.experiences.first
+    stub_article_generation(exp)
+    Content::GenerateJob.perform_now(site.id, "article", "Experience", exp.id)
+
+    entries = described_class.for(site.reload)
+
+    expect(entries.map(&:page_type)).to include("articles")
+    expect(entries.map(&:page_type)).not_to include("article")
+    expect(entries.map(&:url)).not_to include("/article/#{exp.id}")
+  end
 end

@@ -12,15 +12,20 @@ module Content
 
     discard_on ActiveRecord::RecordNotFound
 
-    def perform(site_id, page_type)
+    # knowledge_type / knowledge_id name the subject of a per-item page
+    # (article ← Experience, question ← Question); nil for a whole-site page.
+    def perform(site_id, page_type, knowledge_type = nil, knowledge_id = nil)
       site = Site.find(site_id)
-      claim = ContentItem.claim_for_generation!(site, page_type) or return
+      knowledge = knowledge_type ? knowledge_type.constantize.find(knowledge_id) : nil
+      claim = ContentItem.claim_for_generation!(site, page_type, knowledge: knowledge) or return
       item, token, previous_status = claim
 
       begin
-        version = Content::Generator.new(site, page_type: page_type).generate!
+        version = Content::Generator.new(site, page_type: page_type, knowledge: knowledge).generate!
         if version
           item.release_generation!(token, to: version.passed? ? "published" : previous_status)
+          # A new article changes the list page; the list is code, not a model call.
+          Content::Lister.refresh!(site) if version.passed? && Content::PageMaterial.item_page?(page_type)
         else
           # Nothing to write from yet: the item stays a draft, no model was
           # called, and the questions below are what will change that.

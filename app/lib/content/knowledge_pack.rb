@@ -10,13 +10,14 @@ module Content
 
     LIMITS = { facts: 200, experiences: 50, questions: 30, body_chars: 12_000 }.freeze
 
-    attr_reader :site, :page_type, :archetype, :facts, :experiences, :questions, :goals, :slots, :entity, :truncated, :rule
+    attr_reader :site, :page_type, :archetype, :facts, :experiences, :questions, :goals, :slots, :entity, :truncated, :rule, :knowledge
 
-    def self.for(site, page_type:) = new(site, page_type)
+    def self.for(site, page_type:, knowledge: nil) = new(site, page_type, knowledge)
 
-    def initialize(site, page_type)
+    def initialize(site, page_type, knowledge = nil)
       @site = site
       @page_type = page_type.to_s
+      @knowledge = knowledge   # the subject of a per-item page, else nil
       # What this page is built from is decided by the table, not the model.
       @rule = PageMaterial.rule_for(@page_type) || PageMaterial.rule_for("top")
       @archetype = site.primary_archetype_definition
@@ -44,6 +45,7 @@ module Content
         case need
         when :any then facts.any? || experiences.any?
         when :questions then questions.any?
+        when :subject then knowledge.present? && subject_ref.present?
         else facts.any? { |f| f.slot_key == need } || experiences.any? { |e| e.slot_key == need }
         end
       end
@@ -55,10 +57,18 @@ module Content
     def placeholder_slots = missing_slots.select { |s| s.kind == "verifiable" }
     def slot_label(key) = slots.find { |s| s.key == key.to_s }&.label
 
+    # The pack's reference for the subject row (E1 / Q1), when there is one.
+    def subject_ref
+      return nil unless knowledge
+
+      (experiences + questions).find { |r| r.id == knowledge.id && r.class.name.include?(knowledge.class.name) }&.ref
+    end
+
     def to_prompt
       lines = []
       lines << "## 主語"
       lines << (entity ? "#{entity.canonical_name}（#{entity.entity_type}）" : site.name)
+      lines << "\n## このページの主題（これについてだけ書く）: #{subject_ref}" if subject_ref
       lines << "\n## 事実（F）"
       lines.concat(facts.map { |f| "#{f.ref}: #{f.entity_name} の #{slot_label(f.slot_key) || f.attribute_key} = #{f.value}" }.presence || [ "（まだありません）" ])
       lines << "\n## 体験・こだわり（E）"
@@ -96,7 +106,13 @@ module Content
     def build_experiences
       scope = site.experiences.order(:created_at)
       scope = scope.where(entity_id: [ entity.id, nil ]) if entity   # the subject's, or unattributed owner words
-      scope = scope.where(slot_key: rule.experience_slots) unless rule.experiences_all?
+      scope = if rule.experience_slots == :subject
+        knowledge.is_a?(Experience) ? scope.where(id: knowledge.id) : scope.none
+      elsif rule.experiences_all?
+        scope
+      else
+        scope.where(slot_key: rule.experience_slots)
+      end
       rows = scope.limit(LIMITS[:experiences]).to_a
       @truncated = true if scope.count > rows.size
       @experiences_by_ref = {}
@@ -122,6 +138,7 @@ module Content
 
       scope = site.questions.order(frequency: :desc, first_seen_at: :asc)
       scope = scope.where(entity_id: [ entity.id, nil ]) if entity
+      scope = knowledge.is_a?(Question) ? scope.where(id: knowledge.id) : scope.none if rule.questions == :subject
       scope.limit(LIMITS[:questions]).to_a.each_with_index.map do |q, i|
         QuestionRef.new(ref: "Q#{i + 1}", id: q.id, text: q.text).tap { |r| @questions_by_ref[r.ref] = r }
       end

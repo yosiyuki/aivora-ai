@@ -53,6 +53,14 @@ module Content
     # The model's title is never used: it is not grounded, and it goes into
     # the public <title>. Titles are generated in code from the subject name.
     def self.title_for(pack)
+      # A per-item page is titled by its subject's own words: the owner's
+      # summary of an experience, or the question as visitors ask it. Both
+      # are grounded text already.
+      case pack.knowledge
+      when Experience then return pack.knowledge.summary.presence || pack.knowledge.body.to_s.first(40)
+      when Question then return pack.knowledge.text
+      end
+
       name = pack.entity&.canonical_name.presence || pack.site.name
       PAGE_TITLES.fetch(pack.page_type, ->(n) { n }).call(name)
     end

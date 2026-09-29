@@ -23,24 +23,39 @@ module Content
       "faq"      => Rule.new(fact_slots: ALL, experience_slots: ALL, questions: true, needs: [ :questions ]),
       "profile"  => Rule.new(fact_slots: %w[name what story contact location], experience_slots: %w[what story], questions: false, needs: %w[what story]),
       "works"    => Rule.new(fact_slots: %w[name works], experience_slots: %w[works], questions: false, needs: %w[works]),
-      "topics"   => Rule.new(fact_slots: %w[name topic scope], experience_slots: %w[topic scope], questions: true, needs: %w[topic])
+      "topics"   => Rule.new(fact_slots: %w[name topic scope], experience_slots: %w[topic scope], questions: true, needs: %w[topic]),
+      # Per-item pages: the subject is one knowledge row (:subject); the rest of
+      # the pack is supporting material about the same entity.
+      "article"  => Rule.new(fact_slots: ALL, experience_slots: :subject, questions: false, needs: [ :subject ]),
+      "question" => Rule.new(fact_slots: ALL, experience_slots: ALL, questions: :subject, needs: [ :subject ])
     }.freeze
 
-    # Pages generated from the interview's knowledge alone. Per-item pages
-    # (article / question) and pages with no Phase 1 source (news, articles,
-    # categories) are not here on purpose (#63, #64).
-    LIST_PAGES = RULES.keys.freeze
+    # One page per row of this table (README §28 media: 記事 / knowledge_base: Q&A).
+    # The subject is chosen mechanically — a row is a page — never by a model
+    # deciding what deserves an article; that is the operation-phase planner.
+    ITEM_PAGES = { "article" => "Experience", "question" => "Question" }.freeze
+
+    # Pages generated from the interview's knowledge as a whole. Pages with no
+    # Phase 1 source (news, categories) are not here on purpose (#64);
+    # `articles` is built in code from the article pages (Content::Lister).
+    LIST_PAGES = (RULES.keys - ITEM_PAGES.keys).freeze
 
     module_function
 
     def rule_for(page_type) = RULES[page_type.to_s]
     def generated?(page_type) = RULES.key?(page_type.to_s)
+    def item_page?(page_type) = ITEM_PAGES.key?(page_type.to_s)
+    def subject_class(page_type) = ITEM_PAGES.fetch(page_type.to_s).constantize
+    def structure(site) = site.archetype_definitions.flat_map(&:page_structure).uniq
 
     # The archetype's structure, in its order, restricted to what can be built.
     # top is always first: an interview can finish before an archetype is
     # decided, and the site still needs a front page.
     def pages_for(site)
-      ([ "top" ] + site.archetype_definitions.flat_map(&:page_structure)).uniq.select { |t| generated?(t) }
+      ([ "top" ] + structure(site)).uniq.select { |t| LIST_PAGES.include?(t) }
     end
+
+    # The item page types this site's structure calls for.
+    def item_page_types_for(site) = structure(site).select { |t| item_page?(t) }
   end
 end

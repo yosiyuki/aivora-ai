@@ -101,4 +101,25 @@ RSpec.describe ContentItem, type: :model do
       expect(draft.reload.status).to eq("draft")
     end
   end
+
+  describe "per-item pages" do
+    it "takes the knowledge row's id as an immutable slug" do
+      site = cafe_site
+      experience = site.experiences.first
+
+      expect(described_class.url_for_knowledge("article", experience)).to eq("/article/#{experience.id}")
+      expect(described_class.url_for_knowledge("article", experience)).to match(described_class::URL_FORMAT)
+    end
+
+    it "allows one page per knowledge row per site" do
+      site = cafe_site
+      experience = site.experiences.first
+      site.content_items.create!(archetype_page_type: "article", content_type: "article", knowledge: experience,
+                                 url: described_class.url_for_knowledge("article", experience))
+
+      expect {
+        site.content_items.create!(archetype_page_type: "article", content_type: "article", knowledge: experience, url: "/article/other")
+      }.to raise_error(ActiveRecord::RecordNotUnique)
+    end
+  end
 end

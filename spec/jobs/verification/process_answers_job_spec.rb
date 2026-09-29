@@ -67,4 +67,16 @@ RSpec.describe Verification::ProcessAnswersJob do
 
     expect { described_class.perform_now }.to have_enqueued_job(Content::GenerateJob).with(site.id, "works")
   end
+
+  it "gives a new experience its own article on a media site" do
+    site.add_archetype(:media)
+    request = request_for("story")
+    answer!(request, "豆は農園から直接仕入れています")
+    Llm::Fake.respond(:extraction) { { "answered" => true, "value" => "農園直送", "source_text" => "豆は農園から直接仕入れています", "confidence" => 0.9 } }
+    # The answer processor writes a Fact, not an Experience; simulate the
+    # experience arriving the way the router would deliver it.
+    exp = site.experiences.create!(entity: site.primary_entity, summary: "農園直送", body: "豆は農園から直接仕入れています", person_id: "owner", slot_key: "story")
+
+    expect { described_class.perform_now }.to have_enqueued_job(Content::GenerateJob).with(site.id, "article", "Experience", exp.id)
+  end
 end
