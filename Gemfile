@@ -53,7 +53,7 @@ gem "solid_queue", "~> 1.7"
 # process registration included). Lift this once Rails accepts json 3.
 gem "json", "< 3"
 
-gem "rspec-rails", "~> 8.0", groups: [ :development, :test ]
+gem "rspec-rails", "~> 8.1", groups: [ :development, :test ]
 
 gem "slim-rails", "~> 4.0"
 
